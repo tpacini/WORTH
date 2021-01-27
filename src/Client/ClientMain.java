@@ -105,7 +105,8 @@ public class ClientMain {
                         System.out.println("Invalid input. (register user pass)");
                     } else register(splitted[1], splitted[2]);
                 } else
-                    System.out.println("Sei già registrato, impossibile svolgere l'operazione");
+                    System.out.println("Sei loggato, esegui il logout per poter " +
+                            "registrare un altro account.");
                 break;
             case "logout":
                 if (ONLINE == 1) {
@@ -377,7 +378,6 @@ public class ClientMain {
             callbackImpl(regName, regPort);
             ONLINE = 1;
 
-
             /* Recupera le informazioni di multicast, e crea una socket, dei
              * progetti a cui apparteneva */
             checkNotifications();
@@ -389,25 +389,13 @@ public class ClientMain {
      *
      * @param nickname username dell'utente
      * @param pass     password dell'utente
-     * @throws IOException       sendRequest ha riscontrato errori di I/O
-     * @throws NotBoundException la lookup del registry è stata eseguita su un nome "unbound"
      */
-    private static void register(String nickname, String pass) throws IOException, NotBoundException {
+    private static void register(String nickname, String pass) {
         ByteBuffer resp = sendRequest("register " + nickname + " " + pass, BASE_SIZE);
         if (resp == null) return;
 
         String[] answer = new String(resp.array()).trim().split("\n");
         System.out.println(answer[0]);
-
-        if (answer[0].equals("200 OK")) {
-            String[] info = answer[1].split(" ");
-            String regName = info[0];
-            int regPort = Integer.parseInt(info[1]);
-            ClientMain.username = nickname;
-            /* Si registra al sistema di notifica (RMI Callback) */
-            callbackImpl(regName, regPort);
-            ONLINE = 1;
-        }
     }
 
     /**

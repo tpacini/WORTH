@@ -190,6 +190,7 @@ public class ServerMain {
      * @throws IOException errore di I/O
      */
     private static void parser(SelectionKey key) throws IOException {
+        String resp;
         AdvKey keyAttach = (AdvKey) key.attachment();
         String[] commandAndArg = keyAttach.request.split(" ");
         /* Cleaning the input */
@@ -198,13 +199,16 @@ public class ServerMain {
 
         switch (commandAndArg[0]) {
             case "login":
-            case "register":
-                String resp;
                 if ((resp = userIdentification(key, commandAndArg)).equals("200 OK")) {
                     /* Invia le informazioni per far registrare il client al sistema
                      * di notifica */
                     resp += "\n" + rName + " " + rPort;
                 }
+                keyAttach.response = resp;
+                key.interestOps(SelectionKey.OP_WRITE);
+                break;
+            case "register":
+                resp = userIdentification(key, commandAndArg);
                 keyAttach.response = resp;
                 key.interestOps(SelectionKey.OP_WRITE);
                 break;
@@ -337,15 +341,15 @@ public class ServerMain {
     private static String userIdentification(SelectionKey key, String[] credentials) throws IOException {
         String answer;
 
-        if (credentials[0].equals("login"))
+        if (credentials[0].equals("login")) {
             answer = login(credentials[1], credentials[2]);
+            if (answer.equals("200 OK"))
+                /* Allego il nickname all'utente */
+                ((AdvKey) key.attachment()).nickname = credentials[1];
+        }
         else if (credentials[0].equals("register"))
             answer = register(credentials[1], credentials[2]);
         else return "Error";
-
-        if (answer.equals("200 OK"))
-            /* Allego il nickname all'utente */
-            ((AdvKey) key.attachment()).nickname = credentials[1];
 
         return answer;
     }
@@ -733,7 +737,7 @@ public class ServerMain {
             response = "Il nickname è già in uso";
         } else {
             credentials.put(nickname, password);
-            users.put(nickname, "online");
+            users.put(nickname, "offline");
             response = "200 OK";
             supportServer.update(users);
             updateRegistrations();
