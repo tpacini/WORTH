@@ -819,12 +819,14 @@ public class ServerMain {
                          * del progetto*/
                         for (String name : projectInfo) {
                             filePath = newPath + "/" + name;
-                            if (name.equals("infos.json"))
-                                if(restoreInfos(p, filePath).equals(ERR))
+                            if (name.equals("infos.json")) {
+                                if (restoreInfos(p, filePath).equals(ERR))
                                     return ERR;
-                            else
-                                if(restoreCard(p, filePath).equals(ERR))
+                            }
+                            else {
+                                if (restoreCard(p, filePath).equals(ERR))
                                     return ERR;
+                            }
                         }
 
                         /* Dopo aver ripristinato i dati del progetto e delle card, può
