@@ -50,7 +50,7 @@ public class RMICallbackImpl extends RemoteServer implements RMICallbackInterfac
      * Esegue la callback per ogni client registrato
      * @throws RemoteException errore nel remote method
      */
-    private synchronized void doCallbacks() throws RemoteException {
+    private void doCallbacks() throws RemoteException {
         ArrayList<ClientNotifyInterface> clientsDown = new ArrayList<>();
         System.out.println("[REMOTE]*Starting callbacks.*");
         for (ClientNotifyInterface client : clients) {
@@ -82,7 +82,7 @@ public class RMICallbackImpl extends RemoteServer implements RMICallbackInterfac
      * @param users struttura dati aggiornata
      * @throws RemoteException errore nel remote method
      */
-    public synchronized void update(HashMap<String, String> users) throws RemoteException {
+    public void update(HashMap<String, String> users) throws RemoteException {
         this.users = users;
         doCallbacks();
     }
