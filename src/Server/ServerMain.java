@@ -113,7 +113,7 @@ public class ServerMain {
                         if (nickname != null) {
                             getUpdatedData();
                             users.replace(nickname, "online", "offline");
-                            supportServer.update(users);
+                            supportServer.update(users, null);
                         }
                         System.out.println("[CLOSED]: " + nickname +
                                 " | " + ((SocketChannel) key.channel()).getRemoteAddress());
@@ -306,6 +306,9 @@ public class ServerMain {
             /* Crea il registry associato ad un determinato nome e ad una determinata porta */
             Registry registry = LocateRegistry.createRegistry(RMICallbackInterface.PORT);
             registry.bind(RMICallbackInterface.REMOTE_OBJECT_NAME, stub);
+
+            /* Passa il riferimento al dbms */
+            DBMS.setLocal_ref(supportServer);
         } catch (AlreadyBoundException | IOException e) {
             return ERR;
         }
@@ -741,7 +744,7 @@ public class ServerMain {
 
         getUpdatedData();
         users.replace(keyAttach.nickname, "online", "offline");
-        supportServer.update(users);
+        supportServer.update(users, null);
 
         keyAttach.response = null;
         keyAttach.request = null;
@@ -770,7 +773,7 @@ public class ServerMain {
                     else {
                         keyAttach.nickname = nickname;
                         response = "200 OK";
-                        supportServer.update(users);
+                        supportServer.update(users, null);
                     }
                 }
             } else

@@ -1,5 +1,6 @@
 package Server;
 
+import Commons.RMICallbackImpl;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -12,6 +13,7 @@ public class DBMS {
     private static DBMS dbms;
     private static final String MAIN_PATH = "../SavedState";
     private static HashMap<String, String> credentials;
+    private static RMICallbackImpl local_ref;
 
     private DBMS() {
         credentials = new HashMap<>();
@@ -38,6 +40,8 @@ public class DBMS {
         return dbms;
     }
 
+    public static void setLocal_ref(RMICallbackImpl ref) { local_ref = ref; }
+
     /**
      * Esegue un controllo sull'esistenza di un certo nickname
      * @param nickname nome dell'utente
@@ -56,7 +60,10 @@ public class DBMS {
      * false altrimenti
      */
     public synchronized boolean registerUser(String nickname, String pass) {
-        if(credentials.put(nickname, pass) == null){
+        if(credentials.put(nickname, pass) == null) {
+            try {
+                local_ref.update(null, nickname);
+            } catch (IOException e) { System.out.println("Impossibile aggiungere utente."); }
             updateRegistrations();
             return true;
         }

@@ -76,14 +76,18 @@ public class RMICallbackImpl extends RemoteServer implements RMICallbackInterfac
     }
 
     /**
-     * Aggiorna la struttura dati degli utenti con i nuovi valori, dopodiché
-     * esegue la callback su tutti i client (che in questo modo riceveranno gli
-     * aggiornamenti)
+     * Aggiorna la struttura dati degli utenti con i nuovi valori, o un utente
+     * unico dopodiché esegue la callback su tutti i client (che in questo modo
+     * riceveranno gli aggiornamenti)
      * @param users struttura dati aggiornata
      * @throws RemoteException errore nel remote method
      */
-    public void update(HashMap<String, String> users) throws RemoteException {
-        this.users = users;
+    public synchronized void update(HashMap<String, String> users, String nickname) throws RemoteException {
+        if(nickname != null) {
+            if(!this.users.containsKey(nickname)) this.users.put(nickname, "offline");
+        }
+        if(users != null) this.users = users;
+
         doCallbacks();
     }
 }
