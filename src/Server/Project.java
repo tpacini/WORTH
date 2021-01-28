@@ -50,15 +50,19 @@ public class Project {
         this.multicastPort = null;
     }
 
-
+    /**
+     * Aggiunge un utente alla lista dei membri
+     * @param nickname nome utente
+     * @return "200 OK"
+     */
     public String addMember(String nickname) {
         members.add(nickname);
         return OK;
     }
 
     /**
-     * Restituisce la lista contenente tutte le card associate al progetto
-     * @return ArrayList
+     * Restituisce la lista contenente tutte le cards associate al progetto
+     * @return riferimento alla lista
      */
     public ArrayList<Card> listAllCards () {
         return cards;
@@ -67,7 +71,7 @@ public class Project {
     /**
      * Se possibile restituisce il riferimento alla card con uno specifico nome
      * @param cardName nome della card
-     * @return se esiste riferimento a Card, null altrimenti
+     * @return riferimento alla card se quest'ultima esiste, null altrimenti
      */
     public Card getCard(String cardName) {
         Card aux = null;
@@ -101,6 +105,9 @@ public class Project {
                 todo.add(cardName);
             }
             else {
+                /* Se recover è uguale a 1 allora non esegue "to_do.add(cardName)"
+                 * poiché durante la recover la lista to_do viene aggiornata completamente
+                 * in un'operazione */
                 aux = new Card(cardName, descr);
                 cards.add(aux);
             }
@@ -115,7 +122,7 @@ public class Project {
      * @param source lista di partenza
      * @param dest lista di arrivo
      * @return "200 OK" se lo spostamento è avvenuto con successo, un messaggio di errore
-     *          altrimenti
+     * altrimenti
      */
     public String moveCard(String cardName, String source, String dest) {
         ArrayList<String> auxSource;

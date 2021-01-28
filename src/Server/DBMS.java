@@ -18,6 +18,11 @@ public class DBMS {
         STATE = restoreRegistrations();
     }
 
+    /**
+     * Restituisce lo stato del ripristino delle registrazioni, che può
+     * essere positivo (["OK"] or ["CREATE"]) o negativo (["ERROR"])
+     * @return stringa rappresentante lo stato
+     */
     public String checkState() {
         return STATE;
     }
@@ -33,6 +38,12 @@ public class DBMS {
         return dbms;
     }
 
+    /**
+     * Esegue un controllo sull'esistenza di un certo nickname
+     * @param nickname nome dell'utente
+     * @return true se il nome utente è già associato ad un account,
+     * false altrimenti
+     */
     public synchronized boolean existUser(String nickname) {
         return credentials.containsKey(nickname);
     }

@@ -62,6 +62,7 @@ public class ClientMain {
         try {
             Scanner s = new Scanner(System.in);
             String input;
+            System.out.println("Digita \"help\" per conoscere i possibili comandi");
             do {
                 System.out.print("\n> ");
                 input = s.nextLine();
@@ -730,41 +731,47 @@ public class ClientMain {
     private static void help() {
         System.out.println(" ");
 
-        System.out.printf("%-55s %-100s\n\n", "login user pass", "esegui la login");
+        if(ONLINE == 0) {
+            System.out.printf("%-55s %-100s\n\n", "login user pass", "esegui la login");
 
-        System.out.printf("%-55s %-100s\n\n", "register user pass", "esegui la registrazione");
+            System.out.printf("%-55s %-100s\n\n", "register user pass", "esegui la registrazione");
 
-        System.out.printf("%-55s %-100s\n\n", "logout", "esegui la logout");
+            System.out.printf("%-55s %-100s\n\n", "exit", "uscire dal programma");
+        }
+        else {
 
-        System.out.printf("%-55s %-100s\n\n", "list_users", "visualizza la lista degli utenti registrati");
+            System.out.printf("%-55s %-100s\n\n", "logout", "esegui la logout");
 
-        System.out.printf("%-55s %-100s\n\n", "list_online_users", "visualizza la lista degli utenti online");
+            System.out.printf("%-55s %-100s\n\n", "list_users", "visualizza la lista degli utenti registrati");
 
-        System.out.printf("%-55s %-100s\n\n", "list_projects", "visualizza i progetti di cui sei membro");
+            System.out.printf("%-55s %-100s\n\n", "list_online_users", "visualizza la lista degli utenti online");
 
-        System.out.printf("%-55s %-100s\n\n", "create_project nome_prog", "crea un progetto con nome \"nome_prog\"");
+            System.out.printf("%-55s %-100s\n\n", "list_projects", "visualizza i progetti di cui sei membro");
 
-        System.out.printf("%-55s %-100s\n\n", "add_member nome_prog nickname", "aggiungi il membro \"nickname\" al progetto \"nome_prog\"");
+            System.out.printf("%-55s %-100s\n\n", "create_project nome_prog", "crea un progetto con nome \"nome_prog\"");
 
-        System.out.printf("%-55s %-100s\n\n", "show_members nome_prog", "visualizza i membri del progetto \"nome_prog\"");
+            System.out.printf("%-55s %-100s\n\n", "add_member nome_prog nickname", "aggiungi il membro \"nickname\" al progetto \"nome_prog\"");
 
-        System.out.printf("%-55s %-100s\n\n", "show_cards nome_prog", "visualizza le carte associate al progetto \"nome_prog\"");
+            System.out.printf("%-55s %-100s\n\n", "show_members nome_prog", "visualizza i membri del progetto \"nome_prog\"");
 
-        System.out.printf("%-55s %-100s\n\n", "show_card nome_prog nome_card", "visualizza le informazioni della card \"nome_card\" associata al progetto \"nome_prog\"");
+            System.out.printf("%-55s %-100s\n\n", "show_cards nome_prog", "visualizza le carte associate al progetto \"nome_prog\"");
 
-        System.out.printf("%-55s %-100s\n\n", "add_card nome_prog nome_card descr", "aggiungi la card con descrizione \"descr\" al progetto");
+            System.out.printf("%-55s %-100s\n\n", "show_card nome_prog nome_card", "visualizza le informazioni della card \"nome_card\" associata al progetto \"nome_prog\"");
 
-        System.out.printf("%-55s %-100s\n\n", "move_card nome_prog nome_card source_list dest_list", "sposta la card dalla lista \"source_list\" alla lista \"dest_list\"");
+            System.out.printf("%-55s %-100s\n\n", "add_card nome_prog nome_card descr", "aggiungi la card con descrizione \"descr\" al progetto");
 
-        System.out.printf("%-55s %-100s\n\n", "read_chat nome_prog", "visualizza i messaggi della chat del progetto");
+            System.out.printf("%-55s %-100s\n\n", "move_card nome_prog nome_card source_list dest_list", "sposta la card dalla lista \"source_list\" alla lista \"dest_list\"");
 
-        System.out.printf("%-55s %-100s\n\n", "send_chat_msg nome_prog msg", "invia un messaggio nella chat del progetto");
+            System.out.printf("%-55s %-100s\n\n", "read_chat nome_prog", "visualizza i messaggi della chat del progetto");
 
-        System.out.printf("%-55s %-100s\n\n", "get_card_history nome_prog nome_card", "ottieni la \"storia\" della card");
+            System.out.printf("%-55s %-100s\n\n", "send_chat_msg nome_prog msg", "invia un messaggio nella chat del progetto");
 
-        System.out.printf("%-55s %-100s\n\n", "cancel_project nome_prog", "cancella il progetto");
+            System.out.printf("%-55s %-100s\n\n", "get_card_history nome_prog nome_card", "ottieni la \"storia\" della card");
 
-        System.out.printf("%-55s %-100s\n\n", "exit", "uscire dal programma");
+            System.out.printf("%-55s %-100s\n\n", "cancel_project nome_prog", "cancella il progetto");
+
+            System.out.printf("%-55s %-100s\n\n", "exit", "uscire dal programma");
+        }
 
     }
 }

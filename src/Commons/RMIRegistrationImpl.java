@@ -7,7 +7,7 @@ import java.rmi.server.RemoteObject;
 
 public class RMIRegistrationImpl extends RemoteObject implements RMIRegistrationInterface {
     private static RMIRegistrationImpl serverRMI;
-    private DBMS dbms;
+    private final DBMS dbms;
 
     private RMIRegistrationImpl() throws RemoteException {
         super();
@@ -19,6 +19,14 @@ public class RMIRegistrationImpl extends RemoteObject implements RMIRegistration
         return serverRMI;
     }
 
+    /**
+     * Se il nickname e la password rispettano tutti i parametri, allora
+     * l'utente viene registrato al sistema
+     * @param nick nome utente
+     * @param pwd password utente
+     * @return "200 OK" in caso di successo, un messaggio di errore altrimenti
+     * @throws RemoteException errore nel remote method
+     */
     @Override
     public String register(String nick, String pwd) throws RemoteException {
         if(nick == null ||
@@ -30,6 +38,8 @@ public class RMIRegistrationImpl extends RemoteObject implements RMIRegistration
         if(dbms.existUser(nick)) return "Nickname già esistente";
         if(dbms.registerUser(nick, pwd)) return "200 OK";
 
+        /* Questo returnp può essere raggiunto nel caso in cui, con parecchi client, uno
+         * di questi ottiene false in tutti gli if */
         return "Errore";
     }
 }

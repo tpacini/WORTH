@@ -15,8 +15,7 @@ public class RMICallbackImpl extends RemoteServer implements RMICallbackInterfac
     HashMap<String, String> users;                      // lista degli utenti registrati
 
     /* Costruttore */
-    public RMICallbackImpl() throws RemoteException
-    {
+    public RMICallbackImpl() throws RemoteException {
         super();
         clients = new ArrayList<>();
         users = new HashMap<>();
@@ -41,7 +40,7 @@ public class RMICallbackImpl extends RemoteServer implements RMICallbackInterfac
      * @throws RemoteException errore nel remote method
      */
     public synchronized void unregisterForCallback(ClientNotifyInterface Client) throws RemoteException {
-        if(clients.remove(Client))
+        if (clients.remove(Client))
             System.out.println("[REMOTE] Eliminata registrazione del client ");
         else
             System.out.println("[REMOTE] Impossibile eliminare registrazione del client");
@@ -67,12 +66,12 @@ public class RMICallbackImpl extends RemoteServer implements RMICallbackInterfac
          * un'exception durante le callback, in caso positivo elimino il riferimento
          * alla loro interfaccia dalla struttura dati */
         int count = 0;
-        for(ClientNotifyInterface client : clientsDown ) {
+        for (ClientNotifyInterface client : clientsDown) {
             clients.remove(client);
             count++;
         }
 
-        if(count > 0) System.out.println("[REMOTE]* Eliminate " + count + " registrazioni al client");
+        if (count > 0) System.out.println("[REMOTE]* Eliminate " + count + " registrazioni al client");
         System.out.println("[REMOTE]*Callbacks completate.*");
     }
 

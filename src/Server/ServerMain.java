@@ -99,7 +99,7 @@ public class ServerMain {
                     /* Stabilisce la connessione con il client */
                     if (key.isAcceptable())
                         Acceptable(key);
-                        /* Riceve ed esegue i comandi ricevuti dal client */
+                    /* Riceve ed esegue i comandi ricevuti dal client */
                     else if (key.isReadable())
                         Readable(key);
                     else if (key.isWritable())
@@ -352,7 +352,7 @@ public class ServerMain {
      * Invia al client l'indirizzo e la porta utilizzati per il multicast di quel determinato
      * progetto
      * @param projName nome del progetto
-     * @param key      token relativo al client
+     * @param key token relativo al client
      */
     private static void getParameter(String projName, SelectionKey key) {
         AdvKey keyAttach = (AdvKey) key.attachment();
@@ -418,7 +418,7 @@ public class ServerMain {
     /**
      * Controlla se l'utente è membro del progetto
      * @param projName nome del progetto
-     * @param key      token relativo al client
+     * @param key token relativo al client
      * @return "200 OK" in caso di successo, messaggio di errore altrimenti
      */
     private static String isMember(String projName, SelectionKey key) {
@@ -444,7 +444,7 @@ public class ServerMain {
     /**
      * Uguale al metodo "isMember" che però invia l'esito come risposta al client
      * @param projName nome del progetto
-     * @param key      token relativo al client
+     * @param key token relativo al client
      */
     private static void isMemberClient(String projName, SelectionKey key) {
         String answer = isMember(projName, key);
@@ -494,7 +494,7 @@ public class ServerMain {
         if (aux != null) answer = "Il nome del progetto è già in uso";
         else {
             String newAddr = generateAddress(lastAddr);
-            if (newAddr.equals("NULL")) {
+            if (newAddr.equals("NULL")) { // se ha esaurito tutti gli indirizzi di multicast
                 answer = "Non posso generare ulteriori indirizzi di multicast";
             } else {
                 //lastPort = lastPort + 1;
@@ -598,7 +598,6 @@ public class ServerMain {
 
     /**
      * Prepara le informazioni relative alla card e le invia al client
-     *
      * @param projName nome del progetto
      * @param cardName nome della card
      * @param key token relativo al client
@@ -612,6 +611,7 @@ public class ServerMain {
         if (answer.toString().equals("200 OK")) {
             Card auxC = aux.getCard(cardName);
 
+            /* La card non esiste all'interno del progetto */
             if (auxC == null) {
                 answer = new StringBuilder("La card non fa parte del progetto");
             } else {
@@ -627,7 +627,6 @@ public class ServerMain {
 
     /**
      * Aggiunge una card ad un determinato progetto (la card finirà nella lista to_do)
-     *
      * @param projName nome del progetto
      * @param cardName nome della card
      * @param descr descrizione della card
@@ -644,6 +643,7 @@ public class ServerMain {
                 answer = "Il nome della card è già in uso. Errore";
             } else {
                 try {
+                    /* Crea un file relativo alla card */
                     saveCard(aux, c, MAIN_PATH+"/"+projName);
                 } catch (IOException e) {
                     System.out.println("[ERROR] Impossibile salvare la card sul disco");
@@ -670,6 +670,7 @@ public class ServerMain {
 
         if (answer.equals("200 OK")) {
             answer = aux.moveCard(cardName, sourceList, destList);
+            /* Aggiorno il file relativo alla card */
             updateCard(aux, aux.getCard(cardName), MAIN_PATH+"/"+projName, sourceList, destList);
         }
 
@@ -738,6 +739,7 @@ public class ServerMain {
     private static void logout(SelectionKey key) throws IOException {
         AdvKey keyAttach = ((AdvKey) key.attachment());
 
+        getUpdatedData();
         users.replace(keyAttach.nickname, "online", "offline");
         supportServer.update(users);
 
@@ -809,10 +811,12 @@ public class ServerMain {
                 if (aux.isDirectory()) {
                     String[] projectInfo = aux.list();
                     String filePath;
-                    /* Per come è progettata la creazione dei file e delle directory,
-                     *  l'evento projectInfo == null non dovrebbe presentarsi */
+
                     if (projectInfo != null) {
                         Project p = new Project(dir);
+                        /* Ogni file all'interno della directory aux può essere
+                         * o il file "infos.json" o un file relativo ad una card
+                         * del progetto*/
                         for (String name : projectInfo) {
                             filePath = newPath + "/" + name;
                             if (name.equals("infos.json"))
@@ -822,6 +826,9 @@ public class ServerMain {
                                 if(restoreCard(p, filePath).equals(ERR))
                                     return ERR;
                         }
+
+                        /* Dopo aver ripristinato i dati del progetto e delle card, può
+                         * aggiungere il progetto così creato alla lista dei progetti */
                         projects.add(p);
                     }
                 }
@@ -844,10 +851,13 @@ public class ServerMain {
      */
     @SuppressWarnings("unchecked")
     private static String restoreInfos(Project p, String filePath) {
+        /* Utilizza il JSONObject per recuperare le informazioni dal file
+         * "infos.json" */
         try {
             Object obj = new JSONParser().parse(new FileReader(filePath));
             JSONObject jo = (JSONObject) obj;
 
+            /* Imposta le varie informazioni del progetto */
             p.setMulticastAddr((String) jo.get("multicastAddress"));
             p.setMulticastPort((String) jo.get("multicastPort"));
             p.setMembers((ArrayList<String>) jo.get("members"));
@@ -879,8 +889,11 @@ public class ServerMain {
 
             String cardName = (String) jo.get("cardName");
             String descr = (String) jo.get("description");
+            /* Crea un nuovo oggetto card con le informazioni appena
+            *  acquisite */
             Card aux = p.addCard(cardName, descr, 1);
 
+            /* Imposta la lista della card e gli spostamenti della card */
             aux.setList((String) jo.get("list"));
             aux.setMovements((ArrayList<String>) jo.get("movements"));
 
@@ -973,6 +986,7 @@ public class ServerMain {
         FileWriter fileW = new FileWriter(aux);
         JSONObject jsonO = new JSONObject();
 
+        /* Creazione dei vari campi del file json */
         jsonO.put("cardName", c.getName());
         jsonO.put("description", c.getDescription().trim());
         jsonO.put("list", c.getList());
@@ -985,13 +999,14 @@ public class ServerMain {
         fileW.write(jsonO.toJSONString());
         fileW.close();
 
-        /* Devo aggiornare la lista to_do (sul disco) */
+        /* Deve aggiornare la lista to_do (sul disco), poiché una nuova
+         * card è stata creata */
         updateProjState(p, projPath, "todo", null);
     }
 
     /**
-     * Aggiorna i dati di un certo progetto. Tra la possibili scelte ci sono: members, to_do,
-     * o una coppia (choice1, choice2) che indica la lista di destinazione e quella di
+     * Copia i dati obsoleti, li aggiorna e li ricopia nel file. Tra la possibili scelte ci sono:
+     * members, to_do, o una coppia (choice1, choice2) che indica la lista di destinazione e quella di
      * arrivo (da aggiornare)
      * @param proj riferimento al progetto
      * @param projPath percorso relativo alla directory del progetto
@@ -1006,6 +1021,8 @@ public class ServerMain {
             JSONObject joIn = (JSONObject) obj;
             joOut = new JSONObject();
 
+            /* Estrae le informazioni dal file "infos.json" e le inserisce in un
+             * JSONObject */
             joOut.put("projectName", joIn.get("projectName"));
             joOut.put("multicastAddress", joIn.get("multicastAddress"));
             joOut.put("multicastPort", joIn.get("multicastPort"));
@@ -1016,7 +1033,8 @@ public class ServerMain {
             joOut.put("done", joIn.get("done"));
 
             /* Se joOut conteneva già un'associazione alla chiave, allora
-             * il vecchio valore viene rimpiazzato */
+             * il vecchio valore viene rimpiazzato. In questo modo inserisce
+             * i nuovi dati */
             switch (choice1) {
                 case "members":
                     joOut.put("members", proj.getMembers());
@@ -1063,6 +1081,8 @@ public class ServerMain {
             return;
         }
 
+        /* Dopo aver inserito i nuovi dati all'interno di joOut, deve salvare queste
+         * informazioni in "infos.json" */
         try {
             File infos = new File(projPath + "/infos.json");
             if (infos.delete()) {
@@ -1074,6 +1094,7 @@ public class ServerMain {
                 return;
             }
 
+            /* Scrittura del file sul disco */
             FileWriter fileW = new FileWriter(infos);
             fileW.write(joOut.toJSONString());
             fileW.close();
@@ -1104,6 +1125,8 @@ public class ServerMain {
             joOut.put("cardName", joIn.get("cardName"));
             joOut.put("description", joIn.get("description"));
 
+            /* Salva la nuova lista (in cui si trova la card) e i
+             * movimenti aggiornati */
             joOut.put("list", c.getList());
 
             JSONArray movements = new JSONArray();
@@ -1118,6 +1141,7 @@ public class ServerMain {
             return;
         }
 
+        /* Dopo aver aggiornato le informazioni, salva il file sul disco */
         try {
             File card = new File(path);
             if (card.delete()) {

@@ -14,7 +14,7 @@ public class ClientNotifyImpl extends RemoteObject implements ClientNotifyInterf
     }
 
     /**
-     * Stampa a schermo le informazioni sugli utenti aggiornate, altrimenti aggiorna
+     * Stampa a schermo le informazioni, aggiornate, sugli utenti, altrimenti aggiorna
      * solamente la struttura dati
      * @param users struttura dati aggiornata
      * @param visualize 1 se si vogliono visualizzare a schermo le informazioni
