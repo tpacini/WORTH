@@ -19,13 +19,16 @@ javac -cp ../json-simple-1.1.jar \
            Server/AdvKey.java \
 	   Server/Card.java \
 	   Server/Project.java \
-	   Server/ServerInterface.java \
-	   Server/ServerImpl.java \
+	   Server/DBMS.java \
 	   Server/ServerMain.java \
 	   Client/ClientNotifyInterface.java \
 	   Client/MulticastInfos.java \
 	   Client/ClientNotifyImpl.java \
-	   Client/ClientMain.java
+	   Client/ClientMain.java \
+	   Commons/RMICallbackImpl.java \
+	   Commons/RMICallbackInterface.java \
+	   Commons/RMIRegistrationImpl.java \
+  	   Commons/RMIRegistrationInterface.java
 
 if [ $? -eq 0 ]
 then

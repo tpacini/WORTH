@@ -11,14 +11,15 @@ import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
 
-import Server.ServerInterface;
+import Commons.RMIRegistrationInterface;
+import Commons.RMICallbackInterface;
 
 public class ClientMain {
     private static String username;                          // username dell'utente
     private static SocketChannel client;                     // channel utilizzato per comunicare con il server
     private static int ONLINE = 0;                           // identifica se l'utente è loggato o meno
     private static ClientNotifyInterface stub;               // riferimento all'oggetto remoto (callbackObj)
-    private static ServerInterface server;                   // interfaccia remota del server
+    private static RMICallbackInterface server;              // riferimento all'interfaccia remota del server
     private static ClientNotifyInterface callbackObj;        // interfaccia del client che riceve le callback
     private static HashMap<String, MulticastInfos> projects; // associazione progetto-informazione per il multicast
     private static DatagramSocket ds;                        // utilizzata per inviare messaggi nella chat multicast
@@ -78,12 +79,16 @@ public class ClientMain {
         }
     }
 
+
+
+
+
+
     /**
      * Esegue il parsing dell'input dell'utente e esegue dei controlli sulla validità della
      * richiesta
-     *
      * @param input input dell'utente
-     * @throws IOException       errore di I/O
+     * @throws IOException errore di I/O
      * @throws NotBoundException errore nella lookup del registry
      */
     private static void parser(String input) throws IOException, NotBoundException {
@@ -226,7 +231,6 @@ public class ClientMain {
     /**
      * Metodo ausiliario che gestisce l'invio di una richiesta al server, e la
      * ricezione della relativa risposta
-     *
      * @param msg  messaggio di richiesta da inviare al server
      * @param size dimensione del ByteBuffer di ricezione
      * @return ByteBuffer contenente la risposta del server
@@ -270,7 +274,6 @@ public class ClientMain {
      * Gestisce gli inviti di partecipazione ad un certo progetto, o le uscite nel
      * caso in cui il progetto sia stato cancellato. Se sei appena loggato ti ricollega
      * alla chat e aggiorna projects
-     *
      * @throws IOException sendRequest o checkFirstTime hanno riscontrato errori di I/O
      */
     private static void checkNotifications() throws IOException {
@@ -311,7 +314,6 @@ public class ClientMain {
     /**
      * Aggiunge le informazioni sul nuovo progetto all'interno dell'HashMap projects e
      * crea la socket di multicast per interagire con gli altri membri del progetto
-     *
      * @param projName il nome del progetto a cui l'utente è stato aggiunto
      * @param addrPort address:port relativi alla chat multicast del progetto
      * @throws IOException errori di I/O durante le operazioni sulla MulticastSocket
@@ -335,16 +337,13 @@ public class ClientMain {
     /**
      * Metodo ausiliario che gestisce la registrazione al meccanismo di callback e
      * la creazione del ROC (interfaccia remota del server)
-     *
-     * @param regName nome associato al registry
-     * @param regPort porta associata al registry
-     * @throws RemoteException   errore nel remote method
+     * @throws RemoteException errore nel remote method
      * @throws NotBoundException al nome non è associato nessun registro
      */
-    private static void callbackImpl(String regName, int regPort) throws RemoteException, NotBoundException {
+    private static void callbackImpl() throws RemoteException, NotBoundException {
         /* Il client recupera la ROS (interfaccia remota del server) */
-        Registry registry = LocateRegistry.getRegistry(regPort);
-        server = (ServerInterface) registry.lookup(regName);
+        Registry registry = LocateRegistry.getRegistry(RMICallbackInterface.PORT);
+        server = (RMICallbackInterface) registry.lookup(RMICallbackInterface.REMOTE_OBJECT_NAME);
 
         /* Il client si registra alla callback */
         System.out.println("Registering for callback");
@@ -356,46 +355,70 @@ public class ClientMain {
 
     /**
      * Effettua la login dell'utente
-     *
      * @param nickname username dell'utente
-     * @param pass     password dell'utente
-     * @throws IOException       sendRequest ha riscontrato errori di I/O
-     * @throws NotBoundException la lookup del registry è stata eseguita su un nome "unbound"
+     * @param pass password dell'utente
      */
-    private static void login(String nickname, String pass) throws IOException, NotBoundException {
+    private static void login(String nickname, String pass) {
         ByteBuffer resp = sendRequest("login " + nickname + " " + pass, BASE_SIZE);
         if (resp == null) return;
 
-        String[] answer = new String(resp.array()).trim().split("\n");
-        System.out.println(answer[0]);
+        String answer = new String(resp.array()).trim();
+        System.out.println(answer);
 
-        if (answer[0].equals("200 OK")) {
-            String[] info = answer[1].split(" ");
-            String regName = info[0];
-            int regPort = Integer.parseInt(info[1]);
+        if (answer.equals("200 OK")) {
             ClientMain.username = nickname;
             /* Si registra al sistema di notifica (RMI Callback) */
-            callbackImpl(regName, regPort);
+            try {
+                callbackImpl();
+            } catch (IOException | NotBoundException e) {
+                System.out.println("Impossibile registrarsi alle callback.");
+                flag = false;
+                return;
+            }
             ONLINE = 1;
 
             /* Recupera le informazioni di multicast, e crea una socket, dei
              * progetti a cui apparteneva */
-            checkNotifications();
+            try {
+                checkNotifications();
+            } catch (IOException e) {
+                System.out.println("Impossibile partecipare al gruppo di multicast.");
+                flag = false;
+            }
         }
     }
 
     /**
-     * Effettua la registrazione dell'utente
-     *
+     * Effettua la registrazione dell'utente tramite RMI
      * @param nickname username dell'utente
-     * @param pass     password dell'utente
+     * @param pass password dell'utente
      */
     private static void register(String nickname, String pass) {
-        ByteBuffer resp = sendRequest("register " + nickname + " " + pass, BASE_SIZE);
-        if (resp == null) return;
+        RMIRegistrationInterface serverObject;
+        String response;
 
-        String[] answer = new String(resp.array()).trim().split("\n");
-        System.out.println(answer[0]);
+        /* Ottiene l'interfaccia remota del server */
+        try {
+            Registry registry = LocateRegistry.getRegistry(RMIRegistrationInterface.PORT);
+            serverObject = (RMIRegistrationInterface)
+                    registry.lookup(RMIRegistrationInterface.REMOTE_OBJECT_NAME);
+        } catch (NotBoundException e) {
+            System.out.println("Problemi a trovare il binding con lo specifico nome: " +
+                    RMIRegistrationInterface.REMOTE_OBJECT_NAME);
+            return;
+        }
+        catch(IOException e) {
+            System.out.println("Impossibile registrarsi tramite RMI.");
+            return;
+        }
+
+        /* Utilizza il metodo dell'oggetto remoto per effettuare la registrazione */
+        try {
+            response = serverObject.register(nickname, pass);
+            System.out.println(response);
+        } catch (IOException e) {
+            System.out.println("Binding corretto, problemi durante la registrazione");
+        }
     }
 
     /**
@@ -411,7 +434,6 @@ public class ClientMain {
 
     /**
      * Crea un nuovo progetto
-     *
      * @param projName nome del progetto creato
      * @throws IOException sendRequest ha riscontrato errori di I/O
      */
@@ -428,7 +450,6 @@ public class ClientMain {
 
     /**
      * Aggiunge un nuovo membro al progetto
-     *
      * @param projName nome del progetto di cui l'utente fa parte
      * @param nickname nome dell'utente da aggiungere al progetto
      * @throws IOException sendRequest ha riscontrato errori di I/O
@@ -447,7 +468,6 @@ public class ClientMain {
 
     /**
      * Mostra i membri del progetto
-     *
      * @param projName nome del progetto
      */
     private static void showMembers(String projName) {
@@ -464,7 +484,6 @@ public class ClientMain {
 
     /**
      * Mostra le card associate al progetto
-     *
      * @param projName nome del progetto
      */
     private static void showCards(String projName) {
@@ -481,7 +500,6 @@ public class ClientMain {
 
     /**
      * Mostra una specifica card associata al progetto
-     *
      * @param projName nome del progetto
      * @param cardName nome della card
      */
@@ -499,7 +517,6 @@ public class ClientMain {
 
     /**
      * Ottiene la "storia" (le liste che ha visitato la card) della card
-     *
      * @param projName nome del progetto
      * @param cardName nome della card
      */
@@ -517,10 +534,9 @@ public class ClientMain {
 
     /**
      * Aggiunge una card al progetto
-     *
      * @param projName nome del progetto
      * @param cardName nome della card
-     * @param descr    descrizione relativa alla card
+     * @param descr descrizione relativa alla card
      * @throws IOException sendRequest ha riscontrato errori di I/O
      */
     private static void addCard(String projName, String cardName, String descr) throws IOException {
@@ -537,11 +553,10 @@ public class ClientMain {
 
     /**
      * Sposta una card da una certa lista sorgente (to_do, inprogress, toberevised) ad una di destinazione
-     *
-     * @param projName   nome del progetto
-     * @param cardName   nome della card
+     * @param projName nome del progetto
+     * @param cardName nome della card
      * @param sourceList lista di partenza
-     * @param destList   lista di arrivo
+     * @param destList lista di arrivo
      * @throws IOException sendRequest ha riscontrato errori di I/O
      */
     private static void moveCard(String projName, String cardName, String sourceList, String destList)
@@ -560,7 +575,6 @@ public class ClientMain {
 
     /**
      * Legge i messaggi della chat del progetto
-     *
      * @param projName nome del progetto
      * @throws IOException sendRequest o receive hanno riscontrato errori di I/O
      */
@@ -599,7 +613,6 @@ public class ClientMain {
 
     /**
      * Invia un messaggio sulla chat del progetto
-     *
      * @param projName nome del progetto
      * @param sendMsg  messaggio da inviare
      * @throws IOException sendRequest o send hanno riscontrato errori di I/O
@@ -627,7 +640,6 @@ public class ClientMain {
 
     /**
      * Cancella il progetto (solo se tutti i "task" sono conclusi)
-     *
      * @param projName nome del progetto
      */
     private static void cancelProject(String projName) {
@@ -700,9 +712,8 @@ public class ClientMain {
     /**
      * Invia un messaggio di sistema sulla chat, che notifica qualche evento svolto
      * dall'utente (aggiunta di una card, aggiunta di un utente ecc..)
-     *
      * @param projName nome del progetto
-     * @param sendMsg  messaggio di sistema
+     * @param sendMsg messaggio di sistema
      * @throws IOException errore di I/O
      */
     private static void sendSystemMsg(String projName, String sendMsg) throws IOException {
@@ -710,7 +721,8 @@ public class ClientMain {
         String msg = "System: " + sendMsg;
         byte[] buf = msg.getBytes();
         MulticastInfos aux = projects.get(projName);
-        DatagramPacket dp = new DatagramPacket(buf, buf.length, InetAddress.getByName(aux.getAddr()), aux.getPort());
+        DatagramPacket dp = new DatagramPacket(buf, buf.length, InetAddress.getByName(aux.getAddr()),
+                aux.getPort());
         ds.send(dp);
     }
 

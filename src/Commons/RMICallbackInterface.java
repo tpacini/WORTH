@@ -1,13 +1,13 @@
-package Server;
+package Commons;
 
 import Client.ClientNotifyInterface;
 
 import java.rmi.RemoteException;
 import java.rmi.Remote;
 
-/* Interfaccia remota del server che presenta i metodi necessari
-*  al client per registrarsi al servizio di notifica */
-public interface ServerInterface extends Remote {
+public interface RMICallbackInterface extends Remote {
+    int PORT = 5000;
+    String REMOTE_OBJECT_NAME = "CallbackServer";
 
     void registerForCallback (ClientNotifyInterface clientInterface) throws RemoteException;
 

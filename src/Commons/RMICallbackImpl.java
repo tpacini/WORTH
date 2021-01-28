@@ -1,4 +1,4 @@
-package Server;
+package Commons;
 
 import Client.ClientNotifyInterface;
 
@@ -10,12 +10,13 @@ import java.util.HashMap;
 import java.util.List;
 
 
-public class ServerImpl extends RemoteServer implements ServerInterface {
+public class RMICallbackImpl extends RemoteServer implements RMICallbackInterface {
     private final List<ClientNotifyInterface> clients;  // lista dei client registrati
     HashMap<String, String> users;                      // lista degli utenti registrati
 
     /* Costruttore */
-    public ServerImpl() throws RemoteException {
+    public RMICallbackImpl() throws RemoteException
+    {
         super();
         clients = new ArrayList<>();
         users = new HashMap<>();

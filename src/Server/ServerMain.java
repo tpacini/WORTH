@@ -1,5 +1,9 @@
 package Server;
 
+import Commons.RMICallbackImpl;
+import Commons.RMICallbackInterface;
+import Commons.RMIRegistrationImpl;
+import Commons.RMIRegistrationInterface;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -17,23 +21,22 @@ import java.util.*;
 
 // NIO Multiplexed Server
 public class ServerMain {
-    final static int TIMER = 5000;                      // timer del selettore
-    final static String MAIN_PATH = "../SavedState";
-
-    final static String rName = "Server";               // nome associato al registry
-    final static int rPort = 5000;                      // numero di porta corrispondente al registry
+    private static String MAIN_PATH;                    // directory che contiene il vecchio stato del server
+    private static DBMS dbms;                           // DB che gestisce le registrazioni
+    private static final String ERR = "[ERROR]";        // messaggio di errore
+    private static int port;                            // porta su cui avviene la connessione TCP con i client
     private static Selector sel;                        // selettore
 
     private static ArrayList<Project> projects;         // lista dei progetti
     private static HashMap<String, String> users;       // lista degli utenti con il loro stato
     private static HashMap<String, String> credentials; // lista delle credenziali degli utenti
 
-    private static ServerImpl supportServer;            // riferimento locale dell'interfaccia remota del server
+    private static RMICallbackImpl supportServer;       // riferimento locale dell'interfaccia remota del server
     private static String lastAddr = "228.0.0.0";       // ultimo indirizzo utilizzato per il multicast
     final static int lastPort = 2000;                   // ultima porta utilizzata per il multicast
 
-    public static void main(String[] args) throws IOException {
-        int port;
+
+    public static void main(String[] args) {
         projects = new ArrayList<>();
         users = new HashMap<>();
         credentials = new HashMap<>();
@@ -48,23 +51,36 @@ public class ServerMain {
             return;
         }
 
-        /* Recupera le informazioni salvate su file */
-        restoreServerState();
+        /* Recupera le informazioni riguardanti registrazioni, progetti
+         * e card che possono trovarsi sul disco */
+        dbms = DBMS.getInstance();
+        MAIN_PATH = dbms.getMainPath();
+        String state = dbms.checkState();
+        if(!state.equals("[CREATE]")) {
+            if (state.equals(ERR) || restoreProjects().equals(ERR)){
+                System.out.println(ERR + " Impossibile ripristinare lo stato del server.");
+                return;
+            }
+        }
+
         System.out.println("----------------------------");
 
-        setRMIAndRegistry(0, 39000);
+        /* Imposta l'interfaccia remota per poter permettere ai client di registrarsi
+         * (tramite RMI) */
+        if(setRMIRegistration().equals(ERR) || setRMIAndRegistry().equals(ERR)) {
+            System.out.println(ERR + " Impossibile impostare servizio di RMI.");
+            return;
+        }
 
-        /* Inizializza la SocketChannel e si prepara a ricevere nuove connessioni */
-        ServerSocketChannel servSockChan = ServerSocketChannel.open();
-        servSockChan.socket().bind(new InetSocketAddress("localhost", port));
-        servSockChan.configureBlocking(false);
-        sel = Selector.open();
-        servSockChan.register(sel, SelectionKey.OP_ACCEPT);
-        System.out.println("[WAITING] Connections on port " + port);
+        /* Inizializza la connessione TCP e si prepara a ricevere nuove connessioni */
+        if(TCPConfiguration().equals(ERR)) {
+            System.out.println(ERR + " Impossibile creare connessione TCP");
+            return;
+        }
 
         while (true) {
             try {
-                sel.select(TIMER);
+                if(sel.select() == 0) continue;
             } catch (IOException e) {
                 System.out.println("[ERROR] Errore selettore");
                 return;
@@ -95,6 +111,7 @@ public class ServerMain {
                         AdvKey keyAttach = (AdvKey) key.attachment();
                         String nickname = keyAttach.nickname;
                         if (nickname != null) {
+                            getUpdatedData();
                             users.replace(nickname, "online", "offline");
                             supportServer.update(users);
                         }
@@ -107,22 +124,15 @@ public class ServerMain {
                 }
             }
         }
-
-        /* Prima di uscire, il programma deve salvare il proprio stato */
-        //servSockChan.close();
-        //sel.close();
-        //UnicastRemoteObject.unexportObject(supportServer, false);
-        //System.out.println("----------------------------");
-        //saveServerState();
     }
 
 
 
-    /*  SELECTOR METHODS **************/
+
+
 
     /**
      * Accetta la connessione con il client
-     *
      * @param key token che rappresenta il "channel" riferito ad un certo client
      * @throws IOException errore di I/O
      */
@@ -139,7 +149,6 @@ public class ServerMain {
 
     /**
      * Riceve la richiesta del client e esegue dei controlli in lettura
-     *
      * @param key token che rappresenta il "channel" riferito ad un certo client
      * @throws IOException errore di I/O
      */
@@ -159,7 +168,6 @@ public class ServerMain {
     /**
      * Invia la risposta al client e resetta il campo request e response
      * di AdvKey
-     *
      * @param key token che rappresenta il "channel" riferito ad un certo client
      * @throws IOException errore di I/O
      */
@@ -180,17 +188,16 @@ public class ServerMain {
 
 
 
-    /*  AUXILIARY METHODS **************/
+
+
 
     /**
      * Effettua il parsing della richiesta dell'utente e sceglie il metodo con
      * cui risolverla
-     *
      * @param key token che rappresenta il "channel" riferito ad un certo client
      * @throws IOException errore di I/O
      */
     private static void parser(SelectionKey key) throws IOException {
-        String resp;
         AdvKey keyAttach = (AdvKey) key.attachment();
         String[] commandAndArg = keyAttach.request.split(" ");
         /* Cleaning the input */
@@ -199,17 +206,7 @@ public class ServerMain {
 
         switch (commandAndArg[0]) {
             case "login":
-                if ((resp = userIdentification(key, commandAndArg)).equals("200 OK")) {
-                    /* Invia le informazioni per far registrare il client al sistema
-                     * di notifica */
-                    resp += "\n" + rName + " " + rPort;
-                }
-                keyAttach.response = resp;
-                key.interestOps(SelectionKey.OP_WRITE);
-                break;
-            case "register":
-                resp = userIdentification(key, commandAndArg);
-                keyAttach.response = resp;
+                login(commandAndArg[1], commandAndArg[2], key);
                 key.interestOps(SelectionKey.OP_WRITE);
                 break;
             case "list_projects":
@@ -272,31 +269,88 @@ public class ServerMain {
         }
     }
 
-    private static void setRMIAndRegistry(int count, int port) {
+    /**
+     * Imposta il sistema RMI per far registrare gli utenti
+     * @return "[OK]" se l'operazione avviene con successo,
+     * "[ERR]" altrimenti
+     */
+    private static String setRMIRegistration() {
         try {
-            /* Imposta il sistema di notifica RMI e crea il registry */
-            supportServer = new ServerImpl();
-            ServerInterface stub = (ServerInterface) UnicastRemoteObject.exportObject(supportServer, port);
+            RMIRegistrationImpl registrationServer = RMIRegistrationImpl.getServerRMI();
+            /* Ottiene il riferimento locale */
+            RMIRegistrationInterface stub = (RMIRegistrationInterface)
+                    UnicastRemoteObject.exportObject(registrationServer, 0);
 
-            /* Crea il registry associato ad un determinato nome e ad una determinata porta */
-            LocateRegistry.createRegistry(rPort);
-            Registry registry = LocateRegistry.getRegistry(rPort);
-            registry.bind(rName, stub);
-            //supportServer.update(users); verrà fatta durante login/register....
-        } catch (IOException e) {
-            System.out.println("[BIND ERROR] Porta " + port + " già in uso? Incrementa.");
-            setRMIAndRegistry(count+1, port+1);
-            if(count > 3) System.out.println("[ERROR] Fatal error");
-        } catch (AlreadyBoundException e) {
-            System.out.println("[BIND ERROR] Registry already bound");
+            /* Creazione registry */
+            Registry registry = LocateRegistry.createRegistry(RMIRegistrationInterface.PORT);
+            registry.bind(RMIRegistrationInterface.REMOTE_OBJECT_NAME, stub);
+        } catch (IOException | AlreadyBoundException e){
+            return ERR;
         }
 
+        return "[OK]";
+    }
+
+    /**
+     * Imposta il sistema RMI per svolgere le callback
+     * @return "[OK]" se l'operazione avviene con successo,
+     * "[ERR]" altrimenti
+     */
+    private static String setRMIAndRegistry() {
+        try {
+            supportServer = new RMICallbackImpl();
+            /* Imposta il sistema di notifica RMI e crea il registry */
+            RMICallbackInterface stub = (RMICallbackInterface)
+                    UnicastRemoteObject.exportObject(supportServer, 0);
+
+            /* Crea il registry associato ad un determinato nome e ad una determinata porta */
+            Registry registry = LocateRegistry.createRegistry(RMICallbackInterface.PORT);
+            registry.bind(RMICallbackInterface.REMOTE_OBJECT_NAME, stub);
+        } catch (AlreadyBoundException | IOException e) {
+            return ERR;
+        }
+
+        return "[OK]";
+    }
+
+    /**
+     * Imposta una connessione tcp su una determinata port
+     * @return "[OK]" se l'operazione avviene con successo,
+     * "[ERR]" altrimenti
+     */
+    private static String TCPConfiguration() {
+        try {
+            ServerSocketChannel servSockChan = ServerSocketChannel.open();
+            servSockChan.socket().bind(new InetSocketAddress("localhost", port));
+            servSockChan.configureBlocking(false);
+            sel = Selector.open();
+            servSockChan.register(sel, SelectionKey.OP_ACCEPT);
+            System.out.println("[WAITING] Connections on port " + port);
+        } catch(IOException e) {
+            return ERR;
+        }
+
+        return "[OK]";
+    }
+
+    /**
+     * Ottiene la lista degli utenti registrati dal DBMS, e aggiorna la lista
+     * degli utenti locali, con il loro relativo stato
+     */
+    private static void getUpdatedData() {
+        credentials = dbms.getCredentials();
+
+        /* Se si sono registrati nuovi utenti, li aggiunge
+         * alla lista degli utenti, con stato "offline" */
+        for(String user : credentials.keySet()) {
+            if(!users.containsKey(user))
+                users.put(user, "offline");
+        }
     }
 
     /**
      * Invia al client l'indirizzo e la porta utilizzati per il multicast di quel determinato
      * progetto
-     *
      * @param projName nome del progetto
      * @param key      token relativo al client
      */
@@ -314,7 +368,6 @@ public class ServerMain {
     /**
      * Metodo ausiliario che controlla se il progetto fornito esiste all'interno
      * della lista dei progetti
-     *
      * @param projName nome del progetto
      * @return riferimento al progetto se esiste, null altrimenti
      */
@@ -331,32 +384,7 @@ public class ServerMain {
     }
 
     /**
-     * Utilizza i metodi dell'interfaccia remota per effettuare la login/registrazione dell'utente
-     *
-     * @param key         token che rappresenta la registrazione, di un certo "channel", al selettore
-     * @param credentials stringa contenente username e password dell'utente
-     * @return "200 OK" in caso di successo, "Error" altrimenti
-     * @throws IOException login o register hanno riscontrato una RemoteException
-     */
-    private static String userIdentification(SelectionKey key, String[] credentials) throws IOException {
-        String answer;
-
-        if (credentials[0].equals("login")) {
-            answer = login(credentials[1], credentials[2]);
-            if (answer.equals("200 OK"))
-                /* Allego il nickname all'utente */
-                ((AdvKey) key.attachment()).nickname = credentials[1];
-        }
-        else if (credentials[0].equals("register"))
-            answer = register(credentials[1], credentials[2]);
-        else return "Error";
-
-        return answer;
-    }
-
-    /**
      * Genera un nuovo indirizzo per il multicast di un progetto
-     *
      * @param lastAddress ultimo indirizzo utilizzato (già in uso)
      * @return un nuovo indirizzo
      */
@@ -389,7 +417,6 @@ public class ServerMain {
 
     /**
      * Controlla se l'utente è membro del progetto
-     *
      * @param projName nome del progetto
      * @param key      token relativo al client
      * @return "200 OK" in caso di successo, messaggio di errore altrimenti
@@ -415,8 +442,7 @@ public class ServerMain {
     }
 
     /**
-     * Metodo "isMember" che invia l'esito come risposta al client
-     *
+     * Uguale al metodo "isMember" che però invia l'esito come risposta al client
      * @param projName nome del progetto
      * @param key      token relativo al client
      */
@@ -428,11 +454,11 @@ public class ServerMain {
 
 
 
-    /*  MAIN METHODS **************/
+
+
 
     /**
-     * Elenca i progetti di cui l'utente fa parte e li invia al client
-     *
+     * Elenca i progetti di cui l'utente fa parte
      * @param key token relativo al client
      */
     private static void listProjects(SelectionKey key) {
@@ -456,9 +482,8 @@ public class ServerMain {
 
     /**
      * Crea un nuovo progetto e lo aggiunge alla struttura dati dei progetti
-     *
      * @param projName nome del progetto
-     * @param key      token relativo al client
+     * @param key token relativo al client
      */
     private static void createProject(String projName, SelectionKey key) {
         String answer;
@@ -490,10 +515,9 @@ public class ServerMain {
 
     /**
      * Aggiunge un nuovo membro ad un certo progetto
-     *
      * @param projName nome del progetto
      * @param nickname nome del nuovo membro
-     * @param key      token relativo al client
+     * @param key token relativo al client
      */
     private static void addMember(String projName, String nickname, SelectionKey key) {
         String answer = isMember(projName, key);
@@ -504,6 +528,7 @@ public class ServerMain {
         /* Se l'utente fa parte del progetto e il progetto esiste, allora può
          * aggiungere il nuovo membro */
         if (answer.equals("200 OK")) {
+            getUpdatedData();
             /* Controlla che nickname rappresenti un utente registrato */
             if (!users.containsKey(nickname)) answer = "Il nome utente non esiste";
             else {
@@ -529,9 +554,8 @@ public class ServerMain {
 
     /**
      * Elenca i membri relativi ad un certo progetto e li invia al client
-     *
      * @param projName nome del progetto
-     * @param key      token relativo al client
+     * @param key token relativo al client
      */
     private static void showMembers(String projName, SelectionKey key) {
         AdvKey keyAttach = (AdvKey) key.attachment();
@@ -553,9 +577,8 @@ public class ServerMain {
 
     /**
      * Elenca le card associate ad un certo progetto e le invia al client
-     *
      * @param projName nome del progetto
-     * @param key      token relativo al client
+     * @param key token relativo al client
      */
     private static void showCards(String projName, SelectionKey key) {
         AdvKey keyAttach = (AdvKey) key.attachment();
@@ -578,7 +601,7 @@ public class ServerMain {
      *
      * @param projName nome del progetto
      * @param cardName nome della card
-     * @param key      token relativo al client
+     * @param key token relativo al client
      */
     private static void showCard(String projName, String cardName, SelectionKey key) {
         AdvKey keyAttach = (AdvKey) key.attachment();
@@ -607,8 +630,8 @@ public class ServerMain {
      *
      * @param projName nome del progetto
      * @param cardName nome della card
-     * @param descr    descrizione della card
-     * @param key      token relativo al client
+     * @param descr descrizione della card
+     * @param key token relativo al client
      */
     private static void addCard(String projName, String cardName, String descr, SelectionKey key) {
         AdvKey keyAttach = (AdvKey) key.attachment();
@@ -633,12 +656,11 @@ public class ServerMain {
 
     /**
      * Muove la card di un certo progetto da una lista ad un'altra
-     *
-     * @param projName   nome del progetto
-     * @param cardName   nome della card
+     * @param projName nome del progetto
+     * @param cardName nome della card
      * @param sourceList lista di origine
-     * @param destList   lista di destinazione
-     * @param key        token relativo al client
+     * @param destList lista di destinazione
+     * @param key token relativo al client
      */
     private static void moveCard(String projName, String cardName, String sourceList, String destList,
                                  SelectionKey key) {
@@ -655,11 +677,10 @@ public class ServerMain {
     }
 
     /**
-     * Ottiene la "storia" della card e la invia al client
-     *
+     * Ottiene la "storia" della card
      * @param projName nome del progetto
      * @param cardName nome della card
-     * @param key      token relativo al client
+     * @param key token relativo al client
      */
     private static void getCardHistory(String projName, String cardName, SelectionKey key) {
         AdvKey keyAttach = (AdvKey) key.attachment();
@@ -683,9 +704,8 @@ public class ServerMain {
 
     /**
      * Cancella un progetto
-     *
      * @param projName nome del progetto
-     * @param key      token relativo al client
+     * @param key token relativo al client
      */
     private static void cancelProject(String projName, SelectionKey key) {
         AdvKey keyAttach = (AdvKey) key.attachment();
@@ -702,6 +722,11 @@ public class ServerMain {
 
         keyAttach.response = answer;
     }
+
+
+
+
+
 
     /**
      * Effettua la logout dell'utente cambiando il suo stato da "online"
@@ -722,67 +747,154 @@ public class ServerMain {
     }
 
     /**
-     * Esegue la registrazione dell'utente, aggiungendolo alla lista degli utenti
-     * e cambiando il suo stato da "offline" a "online"
-     *
-     * @param nickname nickname dell'utente
+     * Esegue la login dell'utente
+     * @param nickname nome dell'utente
      * @param password password dell'utente
-     * @return "200 OK" se la registrazione avviene con successo, un messaggio
-     * di errore altrimenti
-     * @throws IOException update riscontra una RemoteException
+     * @param key token relativo al client
+     * @throws IOException errore di I/O
      */
-    public static String register(String nickname, String password) throws IOException {
+    public static void login(String nickname, String password, SelectionKey key) throws IOException {
+        AdvKey keyAttach = (AdvKey) key.attachment();
         String response;
-        if (credentials.containsKey(nickname)) {
-            response = "Il nickname è già in uso";
-        } else {
-            credentials.put(nickname, password);
-            users.put(nickname, "offline");
-            response = "200 OK";
-            supportServer.update(users);
-            updateRegistrations();
-        }
 
-        return response;
-    }
-
-    /**
-     * Esegue la login dell'utente, cambiando il suo stato da "offline" a "online"
-     *
-     * @param nickname nickname dell'utente
-     * @param password password dell'utente
-     * @return "200 OK" se il login avviene con successo, un messaggio di errore
-     * altrimenti
-     * @throws IOException update riscontra una RemoteException
-     */
-    public static String login(String nickname, String password) throws IOException {
-        String response;
+        getUpdatedData();
         if (credentials.containsKey(nickname)) {
             if (credentials.get(nickname).equals(password)) {
                 if (users.get(nickname).equals("online"))
                     response = "L'utente è già online";
                 else {
-                    users.replace(nickname, "offline", "online");
-                    response = "200 OK";
-                    supportServer.update(users);
+                    if(!users.replace(nickname, "offline", "online"))
+                        response = "Impossibile mandare l'utente online";
+                    else {
+                        keyAttach.nickname = nickname;
+                        response = "200 OK";
+                        supportServer.update(users);
+                    }
                 }
             } else
                 response = "Password errata";
-        } else {
+        } else
             response = "Il nickname non esiste";
-        }
 
-        return response;
+
+        keyAttach.response = response;
     }
 
 
 
-    /*  SERVER STATE METHODS **************/
+
+
+
+    /**
+     * Ripristina le informazioni relative ai progetti
+     * @return "[OK]" se il ripristino è avvenuto con successo,
+     * "[ERROR]" altrimenti
+     */
+    private static String restoreProjects() {
+        File basedir = new File(MAIN_PATH);
+        // if(basedir.exists())
+        String[] filesAndDir = basedir.list(); // ottiene la lista di file e directory
+
+        /* Se il vecchio stato contiene degli elementi */
+        if (filesAndDir != null) {
+            for (String dir : filesAndDir) {
+                /* registrations.json già analizzato */
+                if (dir.equals("registrations.json"))
+                    continue;
+
+                String newPath = MAIN_PATH + "/" + dir;
+                File aux = new File(newPath);
+                /* Ogni directory mi rappresenta un progetto, con all'interno
+                 *  tutte le informazioni relative a quest'ultimo */
+                if (aux.isDirectory()) {
+                    String[] projectInfo = aux.list();
+                    String filePath;
+                    /* Per come è progettata la creazione dei file e delle directory,
+                     *  l'evento projectInfo == null non dovrebbe presentarsi */
+                    if (projectInfo != null) {
+                        Project p = new Project(dir);
+                        for (String name : projectInfo) {
+                            filePath = newPath + "/" + name;
+                            if (name.equals("infos.json"))
+                                if(restoreInfos(p, filePath).equals(ERR))
+                                    return ERR;
+                            else
+                                if(restoreCard(p, filePath).equals(ERR))
+                                    return ERR;
+                        }
+                        projects.add(p);
+                    }
+                }
+            }
+
+            return "[OK]";
+        }
+        else {
+            return ERR;
+        }
+    }
+
+    /**
+     * Ripristina le informazioni di un progetto, come le informazioni di
+     * multicast, la lista dei membri..
+     * @param p riferimento al progetto
+     * @param filePath path relativo a "infos.json"
+     * @return "[OK]" se il ripristino è avvenuto con successo,
+     * "[ERROR]" altrimenti
+     */
+    @SuppressWarnings("unchecked")
+    private static String restoreInfos(Project p, String filePath) {
+        try {
+            Object obj = new JSONParser().parse(new FileReader(filePath));
+            JSONObject jo = (JSONObject) obj;
+
+            p.setMulticastAddr((String) jo.get("multicastAddress"));
+            p.setMulticastPort((String) jo.get("multicastPort"));
+            p.setMembers((ArrayList<String>) jo.get("members"));
+
+            p.setTodo((ArrayList<String>) jo.get("todo"));
+            p.setInprogress((ArrayList<String>) jo.get("inprogress"));
+            p.setToberevised((ArrayList<String>) jo.get("toberevised"));
+            p.setDone((ArrayList<String>) jo.get("done"));
+
+        } catch (ParseException | IOException e) {
+            return ERR;
+        }
+
+        return "[OK]";
+    }
+
+    /**
+     * Ripristina la card e le sue informazioni (nome, descrizione...)
+     * @param p        riferimento al progetto
+     * @param filePath path relativo al file "nomecard.json"
+     * @return "[OK]" se il ripristino è avvenuto con successo,
+     * "[ERROR]" altrimenti
+     */
+    @SuppressWarnings("unchecked")
+    private static String restoreCard(Project p, String filePath) {
+        try {
+            Object obj = new JSONParser().parse(new FileReader(filePath));
+            JSONObject jo = (JSONObject) obj;
+
+            String cardName = (String) jo.get("cardName");
+            String descr = (String) jo.get("description");
+            Card aux = p.addCard(cardName, descr, 1);
+
+            aux.setList((String) jo.get("list"));
+            aux.setMovements((ArrayList<String>) jo.get("movements"));
+
+        } catch (ParseException | IOException e) {
+            return ERR;
+        }
+
+        return "[OK]";
+    }
 
     /**
      * Crea una directory relativa ad un progetto, contenente varie informazioni come
      * membri, card e stato delle liste
-     *
+     * @param p riferimento al progetto
      * @throws IOException saveProjectInfo, o saveCards, riscontra un errore I/O
      */
     private static void saveProject(Project p) throws IOException {
@@ -798,7 +910,6 @@ public class ServerMain {
     /**
      * Crea un file contente le informazioni del progetto come membri, card, stato
      * delle liste e nome del progetto
-     *
      * @param proj     riferimento al progetto
      * @param projPath percorso iniziale su cui verranno salvati i file
      * @throws IOException riscontrato errore in I/O
@@ -878,8 +989,15 @@ public class ServerMain {
         updateProjState(p, projPath, "todo", null);
     }
 
-
-
+    /**
+     * Aggiorna i dati di un certo progetto. Tra la possibili scelte ci sono: members, to_do,
+     * o una coppia (choice1, choice2) che indica la lista di destinazione e quella di
+     * arrivo (da aggiornare)
+     * @param proj riferimento al progetto
+     * @param projPath percorso relativo alla directory del progetto
+     * @param choice1 prima entità da aggiornare
+     * @param choice2 seconda entità da aggiornare
+     */
     @SuppressWarnings("unchecked")
     private static void updateProjState(Project proj, String projPath, String choice1, String choice2) {
         JSONObject joOut = null;
@@ -964,37 +1082,14 @@ public class ServerMain {
         }
     }
 
-    @SuppressWarnings("unchecked")
-    private static void updateRegistrations() {
-        String path = MAIN_PATH+"/registrations.json";
-        File registrations = new File(path);
-        /* Controlla se il file esiste altrimenti lo crea */
-        if (registrations.exists()) {
-            if (!registrations.delete()) {
-                System.out.println("[ERROR] Impossibile aggiornare le registrazioni");
-            }
-        }
-        try {
-            if (registrations.createNewFile()) {
-                try {
-                    FileWriter fileReg = new FileWriter(registrations);
-                    JSONObject joOut = new JSONObject();
-
-                    for (String user : credentials.keySet())
-                        joOut.put(user, credentials.get(user));
-
-                    fileReg.write(joOut.toJSONString());
-                    fileReg.close();
-                    System.out.println("[UPDATE] Registrazioni aggiornate.");
-                } catch (FileNotFoundException e) {
-                    System.out.println("[ERROR] Invalid path: " + path);
-                }
-            }
-        } catch (IOException e) {
-            System.out.println("[ERROR] Impossibile aggiornare le registrazioni");
-        }
-    }
-
+    /**
+     * Aggiorna i dati sul disco di una certa card
+     * @param p riferimento del progetto
+     * @param c riferimento della card (appartenente a p)
+     * @param projPath percorso relativo alla directory del progetto
+     * @param source lista di origine (to_do, inprogress, toberevised)
+     * @param dest lista di destinazione (inprogress, toberevised, done)
+     */
     @SuppressWarnings("unchecked")
     private static void updateCard(Project p, Card c, String projPath, String source, String dest) {
         JSONObject joOut = null;
@@ -1044,142 +1139,8 @@ public class ServerMain {
         updateProjState(p, projPath, source, dest);
     }
 
-
-    /**
-     * Ripristina lo stato antecedente alla chiusura del server
-     */
-    private static void restoreServerState() {
-        File dir = new File(MAIN_PATH);
-        /* Controllo se la cartella esiste altrimenti non c'è nulla da recuperare */
-        if (!dir.exists())
-            System.out.println("[NULL] Nessun file da recuperare.");
-        if (dir.mkdir()) System.out.println("[CREATE] Directory SavedState creata.");
-        else if (!dir.isDirectory())
-            System.out.println("[ERROR] " + MAIN_PATH + " non è una directory");
-            /* Se esiste inizio il recupero */
-        else {
-            /* Recupera le credenziali degli utenti */
-            String fileN = MAIN_PATH + "/registrations.json";
-            try {
-                Object obj = new JSONParser().parse(new FileReader(fileN));
-                JSONObject jo = (JSONObject) obj;
-
-                /* Salva i dati degli utenti sulle relative strutture dati */
-                for (Object user : jo.keySet()) {
-                    String nickname = (String) user;
-                    String password = (String) jo.get(user);
-                    credentials.put(nickname, password);
-                    users.put(nickname, "offline");
-                }
-
-            } catch (FileNotFoundException e) {
-                System.out.println("[ERROR] Invalid path/file: " + fileN);
-            } catch (IOException | ParseException e) {
-                System.out.println("[ERROR] Error while parsing");
-            }
-
-            /* Itera sulle directories e recupera le informazioni riguardanti i progetti */
-            restoreProjects();
-            System.out.println("Old state restored.");
-        }
-    }
-
-    /**
-     * Ripristina le informazioni riguardanti i progetti e le informazioni
-     * relative
-     */
-    private static void restoreProjects() {
-        File basedir = new File(MAIN_PATH);
-        // if(basedir.exists())
-        String[] filesAndDir = basedir.list(); // ottiene la lista di file e directory
-
-        if (filesAndDir == null)
-            System.out.println(basedir.getName() + " non contiene elementi. Errore");
-        else {
-            for (String dir : filesAndDir) {
-                /* registrations.json già analizzato */
-                if (dir.equals("registrations.json"))
-                    continue;
-
-                String newPath = MAIN_PATH + "/" + dir;
-                File aux = new File(newPath);
-                /* Ogni directory mi rappresenta un progetto, con all'interno
-                 *  tutte le informazioni relative a quest'ultimo*/
-                if (aux.isDirectory()) {
-                    String[] projectInfo = aux.list();
-                    String filePath;
-                    /* Per come è progettata la creazione dei file e delle directory,
-                     *  l'evento projectInfo == null non dovrebbe presentarsi */
-                    if (projectInfo != null) {
-                        Project p = new Project(dir);
-                        for (String name : projectInfo) {
-                            filePath = newPath + "/" + name;
-                            if (name.equals("infos.json"))
-                                restoreInfos(p, filePath);
-                            else
-                                restoreCard(p, filePath);
-                        }
-                        projects.add(p);
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Ripristina le informazioni di un progetto, come le informazioni di
-     * multicast, la lista dei membri..
-     *
-     * @param p        riferimento al progetto
-     * @param filePath path relativo a "infos.json"
-     */
-    @SuppressWarnings("unchecked")
-    private static void restoreInfos(Project p, String filePath) {
-        try {
-            Object obj = new JSONParser().parse(new FileReader(filePath));
-            JSONObject jo = (JSONObject) obj;
-
-            p.setMulticastAddr((String) jo.get("multicastAddress"));
-            p.setMulticastPort((String) jo.get("multicastPort"));
-            p.setMembers((ArrayList<String>) jo.get("members"));
-
-            p.setTodo((ArrayList<String>) jo.get("todo"));
-            p.setInprogress((ArrayList<String>) jo.get("inprogress"));
-            p.setToberevised((ArrayList<String>) jo.get("toberevised"));
-            p.setDone((ArrayList<String>) jo.get("done"));
-
-        } catch (ParseException | IOException e) {
-            System.out.println("Invalid filepath: " + filePath);
-        }
-    }
-
-    /**
-     * Ripristina la card e le sue informazioni
-     *
-     * @param p        riferimento al progetto
-     * @param filePath path relativo al file "nomecard.json"
-     */
-    @SuppressWarnings("unchecked")
-    private static void restoreCard(Project p, String filePath) {
-        try {
-            Object obj = new JSONParser().parse(new FileReader(filePath));
-            JSONObject jo = (JSONObject) obj;
-
-            String cardName = (String) jo.get("cardName");
-            String descr = (String) jo.get("description");
-            Card aux = p.addCard(cardName, descr, 1);
-
-            aux.setList((String) jo.get("list"));
-            aux.setMovements((ArrayList<String>) jo.get("movements"));
-
-        } catch (ParseException | IOException e) {
-            System.out.println("Invalid filepath: " + filePath);
-        }
-    }
-
     /**
      * Elimina tutti i file e sotto-directories relative ad un certo path
-     *
      * @param masterPath percorso della directory principale
      */
     private static void clearState(String masterPath) {
@@ -1203,6 +1164,4 @@ public class ServerMain {
                 System.out.println("[DELETE] " + dir.getName() + " deleted.");
         }
     }
-
-
 }
