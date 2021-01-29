@@ -44,6 +44,7 @@ public class ClientMain {
             return;
         }
 
+        /* DatagramSocket utilizzata per l'invio di messaggi sulla chat */
         try {
             ds = new DatagramSocket(2000 + (new Random()).nextInt(8000));
         } catch (SocketException e) {
