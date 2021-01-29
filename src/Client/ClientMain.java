@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.nio.channels.UnresolvedAddressException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
@@ -28,9 +29,10 @@ public class ClientMain {
 
     final static String NOT_LOGGED = "Non sei loggato, impossibile svolgere l'operazione";
     private static boolean flag = true;
+    private static int portS;
+    private static String hostS;
 
     public static void main(String[] args) {
-        int port;
         projects = new HashMap<>();
 
         if (args.length == 0) {
@@ -38,7 +40,8 @@ public class ClientMain {
             return;
         }
         try {
-            port = Integer.parseInt(args[1]);
+            hostS = args[0];
+            portS = Integer.parseInt(args[1]);
         } catch (RuntimeException ex) {
             System.out.println("Invalid port. Error");
             return;
@@ -49,14 +52,6 @@ public class ClientMain {
             ds = new DatagramSocket(2000 + (new Random()).nextInt(8000));
         } catch (SocketException e) {
             e.printStackTrace();
-        }
-
-        try {
-            /* Apre il "canale" con il server */
-            client = SocketChannel.open(new InetSocketAddress(args[0], port));
-        } catch (IOException e) {
-            System.out.println("SocketChannel error. Controllare che il server sia online");
-            return;
         }
 
         /* Ottiene l'input dell'utente e esegue la sua richiesta */
@@ -71,7 +66,7 @@ public class ClientMain {
                 /* Controlla se un utente lo ha aggiunto al suo progetto */
                 if (ONLINE == 1) checkNotifications();
 
-                parser(input);
+                if (flag) parser(input);
             } while (flag);
             logout(1);
             System.out.println("Uscendo...");
@@ -246,8 +241,8 @@ public class ClientMain {
             try {
                 client.write(request);
             }
-            /* La write ha riscontrato un errore*/ catch (IOException e) {
-                System.out.println("Errore scrittura nel buffer della socket del server.");
+            /* La write ha riscontrato un errore*/
+            catch (IOException e) {
                 break;
             }
         }
@@ -260,7 +255,7 @@ public class ClientMain {
              * -1 viene restituito solo in caso di errore (mentre 0 viene restituito nel caso
              * in cui si sia letto il buffer per intero */
             if (read == -1) {
-                System.out.println("Errore lettura nel buffer della socket del server.");
+                System.out.println("Errore lettura. Connessione con il server interrotta.");
                 flag = false;
                 return null;
             }
@@ -361,6 +356,19 @@ public class ClientMain {
      * @param pass password dell'utente
      */
     private static void login(String nickname, String pass) {
+        try {
+            /* Apre il "canale" con il server */
+            client = SocketChannel.open(new InetSocketAddress(hostS, portS));
+        } catch (IOException e) {
+            System.out.println("SocketChannel error. Controllare che il server sia online");
+            flag = false;
+            return;
+        } catch (UnresolvedAddressException e) {
+            System.out.println("Errore con l'indirizzo del server, controllare correttezza");
+            flag = false;
+            return;
+        }
+
         ByteBuffer resp = sendRequest("login " + nickname + " " + pass, BASE_SIZE);
         if (resp == null) return;
 
@@ -685,6 +693,7 @@ public class ClientMain {
                     UnicastRemoteObject.unexportObject(callbackObj, true);
                     stub = null;
                     System.out.println("Logout effettuato con successo, anche se il server è chiuso.");
+                    return;
                 }
             }
 
@@ -695,10 +704,12 @@ public class ClientMain {
                     /* Notifica il server del logout */
                     ByteBuffer request = ByteBuffer.wrap("logout".getBytes());
                     client.write(request);
+                    client.close();
                 } else  {
                     /* Avvisa il server della exit */
                     ByteBuffer request = ByteBuffer.wrap("exit".getBytes());
                     client.write(request);
+                    client.close();
 
                     ds.close();
                 }
@@ -733,11 +744,11 @@ public class ClientMain {
         System.out.println(" ");
 
         if(ONLINE == 0) {
-            System.out.printf("%-55s %-100s\n\n", "login user pass", "esegui la login");
+            System.out.printf("%-20s %-40s\n\n", "login user pass", "esegui la login");
 
-            System.out.printf("%-55s %-100s\n\n", "register user pass", "esegui la registrazione");
+            System.out.printf("%-20s %-40s\n\n", "register user pass", "esegui la registrazione");
 
-            System.out.printf("%-55s %-100s\n\n", "exit", "uscire dal programma");
+            System.out.printf("%-20s %-40s\n\n", "exit", "uscire dal programma");
         }
         else {
 
