@@ -3,12 +3,12 @@ package Server;
 import java.util.ArrayList;
 
 public class Card {
-    String name;                 // nome della card
-    String description;          // descrizione della card
-    String list;                 // nome della lista in cui si trova la card
-    ArrayList<String> movements; // lista dei movimenti effettuati
+    String name;                 // card's name
+    String description;          // card's description
+    String list;                 // card's list
+    ArrayList<String> movements; // list of the card's movements through the lists
 
-    /* Costruttore */
+    /* Main constructor */
     public Card(String name, String descr, String list) {
         this.name = name;
         this.description = descr;
@@ -17,18 +17,17 @@ public class Card {
         movements.add(list);
     }
 
-    /* Costruttore utilizzato per ripristinare lo stato del server */
+    /* Constructor used in server's recovery mode */
     public Card(String name, String descr) {
         this.name = name;
         this.description = descr;
 
         movements = new ArrayList<>();
-        /* I movimenti e la lista verranno aggiunti in un secondo momento */
     }
 
     /**
-     * Sposta la card da una lista ad un'altra
-     * @param newList nome della nuova lista
+     * Move the card to a new list
+     * @param newList name of the new list
      */
     public void changeList(String newList) {
         this.list = newList;

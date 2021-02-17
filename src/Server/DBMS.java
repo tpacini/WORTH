@@ -33,7 +33,7 @@ public class DBMS {
         return credentials;
     }
 
-    public String getMainPath() { return MAIN_PATH;}
+    public String getMainPath() { return MAIN_PATH; }
 
     public static DBMS getInstance() {
         if(dbms == null) dbms = new DBMS();
