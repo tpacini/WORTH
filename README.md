@@ -52,3 +52,7 @@ After compiling, you can *execute* the client :
 and the server:
 <pre><code>java -cp :../json-simple-1.1.jar Server.ServerMain 4382</code></pre>
 In the client side, **localhost** define the server's IP which you can connect to, and **4382** the port.
+
+
+
+**PLEASE NOTE: The code contains some errors!!!**
