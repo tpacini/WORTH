@@ -1,7 +1,4 @@
 # WORTH
-
-Progetto del corso Reti di Calcolatori e Laboratorio a.a. 2020/21.
-
 Il progetto consiste nell’implementazione di ​ **WORkTogetHer** (**WORTH**)​ : uno strumento per la gestione di progetti collaborativi che si ispira ad alcuni principi della metodologia Kanban.
 
 Descrizione dell'assignment: **ProgettoWORTH.pdf**
