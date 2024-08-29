@@ -3,21 +3,20 @@ package Server;
 import java.util.ArrayList;
 
 public class Project {
-    /* The four list that handle the cards: to_do, inprogress, toberevised e done */
+    /* Four possible card state: todo, inprogress, toberevised and done */
     private ArrayList<String> todo;
     private ArrayList<String> inprogress;
     private ArrayList<String> toberevised;
     private ArrayList<String> done;
 
-    private ArrayList<String> members;     // members' list
-    private final ArrayList<Card> cards;   // cards' list
-    private final String projectName;      // project name
-    private String multicastAddr;          // chat's multicast address
-    private String multicastPort;          // chat's multicast port
+    private ArrayList<String> members;
+    private final ArrayList<Card> cards;
+    private final String projectName;
+    private String multicastAddr; // chat's multicast address
+    private String multicastPort; // chat's multicast port
 
     private final String OK = "200 OK";
 
-    /* Constructor */
     public Project(String projectName, String nickname_user, String multicastAddr, String multicastPort) {
         members = new ArrayList<>();
         members.add(nickname_user);
@@ -34,7 +33,6 @@ public class Project {
         this.multicastPort = multicastPort;
     }
 
-    /* Constructor used in server's recovery mode */
     public Project(String projectName) {
         members = new ArrayList<>();
         this.projectName = projectName;
@@ -51,7 +49,7 @@ public class Project {
     }
 
     /**
-     * Add a user to the members
+     * Add a user to the project
      * @param nickname user's name
      * @return "200 OK"
      */
@@ -61,7 +59,7 @@ public class Project {
     }
 
     /**
-     * Obtain the list of all the cards that belong to the project
+     * Obtain the list of the cards belonging to the project
      * @return list's reference
      */
     public ArrayList<Card> listAllCards () {
@@ -69,9 +67,9 @@ public class Project {
     }
 
     /**
-     * If possible, obtain the card's reference
+     * Obtain a reference to the card
      * @param cardName card's name
-     * @return if the card's name exists, the card's reference, null otherwise
+     * @return if the card's name exists, the card reference, null otherwise
      */
     public Card getCard(String cardName) {
         Card aux = null;
@@ -87,7 +85,7 @@ public class Project {
     }
 
     /**
-     * If possible, add the card to the project
+     * Add card to the project
      * @param cardName card's name
      * @param descr card's description
      * @param recover 1 if the method has been called in recovery mode,
@@ -105,8 +103,8 @@ public class Project {
                 todo.add(cardName);
             }
             else {
-                /* If recover==1 so don't execute to_do.add(cardName) because in recovery
-                *  mode the to_do list is updated in a unique operation */
+                /* Do not call to_do.add(cardName) because in recovery
+                 * mode the to_do list is updated in a unique operation */
                 aux = new Card(cardName, descr);
                 cards.add(aux);
             }
@@ -116,7 +114,7 @@ public class Project {
     }
 
     /**
-     * If possible move the card from the source's list to the destination's list
+     * Move the card from the source's list to the destination's list
      * @param cardName card's name
      * @param source source's list
      * @param dest destination's list
@@ -128,11 +126,9 @@ public class Project {
         Card c;
         String response;
 
-        /* Check the card existence */
         if((c = getCard(cardName)) == null)
             response = "The card doesn't exists.";
         else {
-            /* Take the source's list reference */
             switch (source) {
                 case "todo":
                     auxSource = this.todo;
@@ -148,7 +144,6 @@ public class Project {
                             " toberevised. Error";
             }
 
-            /* Prende il riferimento alla lista di destinazione */
             switch (dest) {
                 case "inprogress":
                     auxDest = this.inprogress;
@@ -169,9 +164,7 @@ public class Project {
                 response = "From 'todo' can go only to 'inprogress'. Error";
             else if (source.equals(dest))
                 response = "The card is already inside the " + source + " list";
-            /* If the operation is possible */
             else {
-                /* Check if the card belongs to the list */
                 if(!auxSource.remove(cardName))
                     response = "The card doesn't belong to the " + source + " list. Error";
                 else {

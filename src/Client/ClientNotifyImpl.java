@@ -5,39 +5,37 @@ import java.rmi.server.RemoteObject;
 import java.util.HashMap;
 import java.util.Map;
 
-/* Classe che implementa l'interfaccia remota del client */
+/* Implementation of the client remote interface */
 public class ClientNotifyImpl extends RemoteObject implements ClientNotifyInterface {
-    HashMap <String, String> local_users; // lista degli utenti con il loro stato
+    HashMap <String, String> local_users; // list of users and state
 
     public ClientNotifyImpl() throws RemoteException {
         super(); // To Remote Object
     }
 
     /**
-     * Stampa a schermo le informazioni, aggiornate, sugli utenti, altrimenti aggiorna
-     * solamente la struttura dati
-     * @param users struttura dati aggiornata
-     * @param visualize 1 se si vogliono visualizzare a schermo le informazioni
-     *                  0 altrimenti
-     * @throws RemoteException errore nel remote method
+     * Show and/or updates the users list and their state
+     * 
+     * @param users updated users list
+     * @param visualize 1, show users list and state
+     *                  0, otherwise
+     * @throws RemoteException remote method error
      */
     public void notifyChanges(HashMap<String, String> users, int visualize) throws RemoteException {
-        /* Stampa a schermo l'elenco degli utenti con il relativo stato */
         if(visualize == 1) {
             System.out.printf("\n%-20s %-30s\n", "Username", "|Stato");
             for (Map.Entry<String, String> entry : users.entrySet())
                 System.out.printf("%-20s %-30s\n", entry.getKey(), "|" + entry.getValue());
         }
 
-        /* Deve salvare il riferimento alla struttura dati, così il client
-         * mantiene le informazioni aggiornate */
+        /* Update local copy of users list*/
         local_users = users;
     }
 
     /**
-     * Visualizza l'elenco degli utenti
-     * @param online 1 se si vogliono visualizzare solo gli utenti online
-     *               0 altrimenti
+     * Show users lists
+     * @param online 1, shows only online users
+     *               0, otherwise
      */
     public void getLocalUserList(int online) throws RemoteException {
         if(online == 1) {

@@ -20,26 +20,21 @@ public class RMIRegistrationImpl extends RemoteObject implements RMIRegistration
     }
 
     /**
-     * Se il nickname e la password rispettano tutti i parametri, allora
-     * l'utente viene registrato al sistema
-     * @param nick nome utente
-     * @param pwd password utente
-     * @return "200 OK" in caso di successo, un messaggio di errore altrimenti
-     * @throws RemoteException errore nel remote method
+     * Register user to the system by checking username and password
+     * @param nick username
+     * @param pwd password
+     * @return "200 OK" for success, an error message otherwise
+     * @throws RemoteException remote method error
      */
     @Override
     public String register(String nick, String pwd) throws RemoteException {
-        if(nick == null ||
-                nick.equals("") ||
-                nick.contains(" ")) return "Nickname non valido";
-        if(pwd ==  null || pwd.equals("")) return "Password non valida";
-        if(pwd.length()<5) return "Password troppo corta. Minimo 5 caratteri";
-        if(pwd.length()>20) return "Password troppo lunga. Massimo 20 caratteri";
-        if(dbms.existUser(nick)) return "Nickname già esistente";
+        if(nick == null || nick.equals("") || nick.contains(" ")) return "Invalid nickname";
+        if(pwd ==  null || pwd.equals("")) return "Invalid password";
+        if(pwd.length()<5) return "Password too short. Minimum five characters";
+        if(pwd.length()>20) return "Password too long. Maximum twenty characters";
+        if(dbms.existUser(nick)) return "Username already exists";
         if(dbms.registerUser(nick, pwd)) return "200 OK";
 
-        /* Questo returnp può essere raggiunto nel caso in cui, con parecchi client, uno
-         * di questi ottiene false in tutti gli if */
-        return "Errore";
+        return "Error";
     }
 }

@@ -16,19 +16,19 @@ import Commons.RMIRegistrationInterface;
 import Commons.RMICallbackInterface;
 
 public class ClientMain {
-    private static String username;                          // username dell'utente
-    private static SocketChannel client;                     // channel utilizzato per comunicare con il server
-    private static int ONLINE = 0;                           // identifica se l'utente è loggato o meno
-    private static ClientNotifyInterface stub;               // riferimento all'oggetto remoto (callbackObj)
-    private static RMICallbackInterface server;              // riferimento all'interfaccia remota del server
-    private static ClientNotifyInterface callbackObj;        // interfaccia del client che riceve le callback
-    private static HashMap<String, MulticastInfos> projects; // associazione progetto-informazione per il multicast
-    private static DatagramSocket ds;                        // utilizzata per inviare messaggi nella chat multicast
-    private static final int BASE_SIZE = 256;                // dim. base del ByteBuffer che riceve msg dal server
-    private static final int MAX_SIZE = 2048;                // dim. massima del ByteBuffer che riceve msg dal server
+    private static String username;                          
+    private static SocketChannel client;                     
+    private static int ONLINE = 0;                           
+    private static ClientNotifyInterface stub; // remote object of callbackObj
+    private static RMICallbackInterface server; // server remote interface
+    private static ClientNotifyInterface callbackObj; // client interface
+    private static HashMap<String, MulticastInfos> projects;
+    private static DatagramSocket ds;                        
+    private static final int BASE_SIZE = 256; // default size of RX ByteBuffer
+    private static final int MAX_SIZE = 2048; // maximum size of RX ByteBuffer
 
-    final static String NOT_LOGGED = "Non sei loggato, impossibile svolgere l'operazione";
-    private static boolean flag = true;
+    final static String NOT_LOGGED = "Before performing any operation, you should be logged in.";
+    private static boolean flag = true; // flag triggered on shutdown or errors
     private static int portS;
     private static String hostS;
 
@@ -47,39 +47,32 @@ public class ClientMain {
             return;
         }
 
-        /* DatagramSocket utilizzata per l'invio di messaggi sulla chat */
+        /* DatagramSocket used to send messages to projects' chats */
         try {
             ds = new DatagramSocket(2000 + (new Random()).nextInt(8000));
         } catch (SocketException e) {
             e.printStackTrace();
         }
 
-        /* Ottiene l'input dell'utente e esegue la sua richiesta */
+        /* Parse user input and send the request to the server */
         try {
             Scanner s = new Scanner(System.in);
             String input;
-            System.out.println("Digita \"help\" per conoscere i possibili comandi");
+            System.out.println("Type \"help\" to show all the commands.");
             do {
                 System.out.print("\n> ");
                 input = s.nextLine();
 
-                /* Controlla se un utente lo ha aggiunto al suo progetto */
                 if (ONLINE == 1) checkNotifications();
-
                 if (flag) parser(input);
             } while (flag);
             logout(1);
-            System.out.println("Uscendo...");
+            System.out.println("Exiting...");
             s.close();
         } catch (IOException | NotBoundException ex) {
             ex.printStackTrace();
         }
     }
-
-
-
-
-
 
     /**
      * Esegue il parsing dell'input dell'utente e esegue dei controlli sulla validità della

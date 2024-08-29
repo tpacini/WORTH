@@ -21,9 +21,8 @@ public class DBMS {
     }
 
     /**
-     * Restituisce lo stato del ripristino delle registrazioni, che può
-     * essere positivo (["OK"] or ["CREATE"]) o negativo (["ERROR"])
-     * @return stringa rappresentante lo stato
+     * Return the state of the recovered registrations
+     * @return string representing the state
      */
     public String checkState() {
         return STATE;
@@ -43,27 +42,26 @@ public class DBMS {
     public static void setLocal_ref(RMICallbackImpl ref) { local_ref = ref; }
 
     /**
-     * Esegue un controllo sull'esistenza di un certo nickname
-     * @param nickname nome dell'utente
-     * @return true se il nome utente è già associato ad un account,
-     * false altrimenti
+     * Check if a username "nickname" already exists
+     * @param nickname username
+     * @return true if the username already exists, false otherwise
      */
     public synchronized boolean existUser(String nickname) {
         return credentials.containsKey(nickname);
     }
 
     /**
-     * Registra l'utente se possibile e aggiorna il file sul disco
-     * @param nickname nome dell'utente
-     * @param pass password dell'utente
-     * @return true se la registrazione è avvenuta con successo,
-     * false altrimenti
+     * Register the user
+     * @param nickname username
+     * @param pass password
+     * @return true if the registration has been carried out successfully,
+     *              false otherwise
      */
     public synchronized boolean registerUser(String nickname, String pass) {
         if(credentials.put(nickname, pass) == null) {
             try {
                 local_ref.update(null, nickname);
-            } catch (IOException e) { System.out.println("Impossibile aggiungere utente."); }
+            } catch (IOException e) { System.out.println("The user cannot be added."); }
             updateRegistrations();
             return true;
         }
@@ -72,30 +70,27 @@ public class DBMS {
     }
 
     /**
-     * Ripristina le registrazioni salvate sul disco
-     * @return "[OK]" se il ripristino è avvenuto con successo,
-     * "[CREATE]" se non c'era nessuno stato da ripristinare, "[ERROR] altrimenti
+     * Recover the registrations stored on disk
+     * @return "[OK]" if recovery is successfully,
+     * "[CREATE]" if there was no state to recover, "[ERROR]" otherwise
      */
     private static String restoreRegistrations() {
         File dir = new File(MAIN_PATH);
         File[] files = dir.listFiles();
 
-        /* Controllo se la cartella esiste altrimenti non c'è nulla da recuperare */
         if (!dir.exists() && dir.mkdir())
             return "[CREATE]";
         else if (!dir.isDirectory())
             return "[ERROR]";
-        /* Se la directory esiste ma non ci sono file all'interno */
         else if (files != null && files.length == 0)
             return "[OK]";
-        else { /* Se esiste inizio il recupero */
-            /* Recupera le credenziali degli utenti */
+        else { 
             String fileN = MAIN_PATH + "/registrations.json";
             try {
                 Object obj = new JSONParser().parse(new FileReader(fileN));
                 JSONObject jo = (JSONObject) obj;
 
-                /* Salva i dati degli utenti sulle relative strutture dati */
+                /* Recover data from serialized JSON object */
                 for (Object user : jo.keySet()) {
                     String nickname = (String) user;
                     String password = (String) jo.get(user);
@@ -110,17 +105,13 @@ public class DBMS {
         }
     }
 
-    /**
-     * Aggiorna il file sul disco riguardante le registrazioni
-     */
     @SuppressWarnings("unchecked")
     private static void updateRegistrations() {
         String path = MAIN_PATH+"/registrations.json";
         File registrations = new File(path);
-        /* Controlla se il file esiste altrimenti lo crea */
         if (registrations.exists()) {
             if (!registrations.delete()) {
-                System.out.println("[ERROR] Impossibile aggiornare le registrazioni");
+                System.out.println("[ERROR] Registrations cannot be updated");
             }
         }
         try {
@@ -134,13 +125,13 @@ public class DBMS {
 
                     fileReg.write(joOut.toJSONString());
                     fileReg.close();
-                    System.out.println("[UPDATE] Registrazioni aggiornate.");
+                    System.out.println("[UPDATE] Registrations updated.");
                 } catch (FileNotFoundException e) {
                     System.out.println("[ERROR] Invalid path: " + path);
                 }
             }
         } catch (IOException e) {
-            System.out.println("[ERROR] Impossibile aggiornare le registrazioni");
+            System.out.println("[ERROR] Registrations cannot be updated.");
         }
     }
 }

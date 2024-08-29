@@ -6,9 +6,8 @@ public class Card {
     String name;                 // card's name
     String description;          // card's description
     String list;                 // card's list
-    ArrayList<String> movements; // list of the card's movements through the lists
+    ArrayList<String> movements; // lists which the card belong to
 
-    /* Main constructor */
     public Card(String name, String descr, String list) {
         this.name = name;
         this.description = descr;
@@ -17,7 +16,6 @@ public class Card {
         movements.add(list);
     }
 
-    /* Constructor used in server's recovery mode */
     public Card(String name, String descr) {
         this.name = name;
         this.description = descr;

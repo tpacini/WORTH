@@ -11,10 +11,9 @@ import java.util.List;
 
 
 public class RMICallbackImpl extends RemoteServer implements RMICallbackInterface {
-    private final List<ClientNotifyInterface> clients;  // lista dei client registrati
-    HashMap<String, String> users;                      // lista degli utenti registrati
+    private final List<ClientNotifyInterface> clients;  
+    HashMap<String, String> users;
 
-    /* Costruttore */
     public RMICallbackImpl() throws RemoteException {
         super();
         clients = new ArrayList<>();
@@ -22,37 +21,37 @@ public class RMICallbackImpl extends RemoteServer implements RMICallbackInterfac
     }
 
     /**
-     * Permette ai vari client di registarsi per ricevere notifiche
-     * @param ClientInterface interfaccia remota del client
-     * @throws RemoteException errore nel remote method
+     * Register client for callbacks
+     * @param ClientInterface client remote interface
+     * @throws RemoteException remote method error
      */
     public synchronized void registerForCallback(ClientNotifyInterface ClientInterface) throws RemoteException {
         if (!clients.contains(ClientInterface)) {
             clients.add(ClientInterface);
             ClientInterface.notifyChanges(users, 1);
-            System.out.println("[REMOTE] Nuovo client registrato.");
+            System.out.println("[REMOTE] New client registered.");
         }
     }
 
     /**
-     * Annulla la registrazione per la callback
-     * @param Client interfaccia remota del client
-     * @throws RemoteException errore nel remote method
+     * Unregister client for callback
+     * @param Client client remote interface
+     * @throws RemoteException remote method error
      */
     public synchronized void unregisterForCallback(ClientNotifyInterface Client) throws RemoteException {
         if (clients.remove(Client))
-            System.out.println("[REMOTE] Eliminata registrazione del client ");
+            System.out.println("[REMOTE] Client unregistered.");
         else
-            System.out.println("[REMOTE] Impossibile eliminare registrazione del client");
+            System.out.println("[REMOTE] Unable to unregister client.");
     }
 
     /**
-     * Esegue la callback per ogni client registrato
+     * Perform callback for every registered client
      * @throws RemoteException errore nel remote method
      */
     private void doCallbacks() throws RemoteException {
         ArrayList<ClientNotifyInterface> clientsDown = new ArrayList<>();
-        System.out.println("[REMOTE]*Starting callbacks.*");
+        System.out.println("[REMOTE] Starting callbacks.");
         for (ClientNotifyInterface client : clients) {
             try {
                 client.notifyChanges(users, 0);
@@ -62,25 +61,22 @@ public class RMICallbackImpl extends RemoteServer implements RMICallbackInterfac
             }
         }
 
-        /* Controlla se dei client siano andati down e quindi abbiano creato
-         * un'exception durante le callback, in caso positivo elimino il riferimento
-         * alla loro interfaccia dalla struttura dati */
+        /* Check if the client are still up, if an exception occurs during
+         * the callback, the client interface reference will be removed.*/
         int count = 0;
         for (ClientNotifyInterface client : clientsDown) {
             clients.remove(client);
             count++;
         }
 
-        if (count > 0) System.out.println("[REMOTE]* Eliminate " + count + " registrazioni al client");
-        System.out.println("[REMOTE]*Callbacks completate.*");
+        if (count > 0) System.out.println("[REMOTE]* Removed " + count + " client registrations");
+        System.out.println("[REMOTE] Callbacks completed");
     }
 
     /**
-     * Aggiorna la struttura dati degli utenti con i nuovi valori, o un utente
-     * unico dopodiché esegue la callback su tutti i client (che in questo modo
-     * riceveranno gli aggiornamenti)
-     * @param users struttura dati aggiornata
-     * @throws RemoteException errore nel remote method
+     * Update "users" data structure 
+     * @param users updated data structure
+     * @throws RemoteException remote method error
      */
     public synchronized void update(HashMap<String, String> users, String nickname) throws RemoteException {
         if(nickname != null) {
