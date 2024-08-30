@@ -1,55 +1,24 @@
 # WORTH
-Il progetto consiste nell’implementazione di ​ **WORkTogetHer** (**WORTH**)​ : uno strumento per la gestione di progetti collaborativi che si ispira ad alcuni principi della metodologia Kanban.
 
-Descrizione dell'assignment: **ProgettoWORTH.pdf**
+**WORkTogetHer (WORTH)​** is a project management tool inspired by the principles of the Kanban methodology. Users can join a project, create new tasks, or work on existing tasks (represented as cards). Each task progresses through a series of lists: it starts in the "todo" list, moves to the "inprogress" list when a user takes responsibility for it, then goes to the "toberevised" list when the task is completed and needs to be reviewed, and finally is moved to the "done" list once the review is complete. Project members can communicate with each other using the project chat.
 
-Relazione riguardante la soluzione proposta: **Relazione.pdf**
+Assignment description is located at **ProgettoWORTH.pdf**.
 
-## Client
+The complete project report is located at **ProjectReport.pdf**
 
-*ClientMain.java:* client main class that receive the user's requests and display the server response.
+## Architecture
 
-*MulticastInfos.java*: auxiliary class which contains useful data about the multicast socket used to communicate with the project's chat.
-
-*ClientNotifyInterface.java*: interface which contains the method used by the server to update a resource via RMI Callback.
-
-*ClientNotifyImpl.java*
-
-## Commons
-
-*RMICallbackInterface.java*: interface which contains the methods used by the clients to register/unregister themself to the RMI Callbacks.
-
-*RMICallbackImpl.java*
-
-*RMIRegistrationInterface.java*: interface which contains the method used by the clients to register a user via RMI.
-
-*RMIRegistrationImpl.java*
-
-## Server
-
-*ServerMain.java*: server main class that receive and process the client's requests via TCP.
-
-*Card.java*: a class which describes the card's properties and implements methods to handle them.
-
-*Project.java*: a class which describes the project's properties and implements methods to handle them.
-
-*DBMS.java*: a class which implements the methods used by the RMI registration system to register the users and other useful methods.
-
-*AdvKey.java*
+The architecture is based on a client-server model. The server is single-threaded and uses a selector to multiplex channels, providing a more lightweight and scalable solution compared to a multithreaded approach. Client registration is handled via an RMI (Remote Method Invocation) mechanism. Once a new user is registered, all registered users are notified through a callback that updates the user list. Client requests to create a new project, join an existing project, or perform any project-related operations are sent to the server over a TCP connection. To ensure data persistence, any modifications to elements are saved to disk. When the server restarts, it restores the previous state, allowing clients to continue working on their projects seamlessly.
 
 ## Compile & Execute
 
-Go inside the *src* folder, then to *compile*:
+To compile the source code, go inside the *src* folder:
 
 <pre><code>chmod +x compile.sh</code></pre>
 <pre><code>./compile.sh</code></pre>
    
-After compiling, you can *execute* the client :
+After compiling, you can *execute* the client:
 <pre><code>java Client.ClientMain localhost 4382</code></pre>
 and the server:
 <pre><code>java -cp :../json-simple-1.1.jar Server.ServerMain 4382</code></pre>
-In the client side, **localhost** define the server's IP which you can connect to, and **4382** the port.
-
-
-
-:warning: **PLEASE NOTE: The code contains some errors!!!** :warning:
+where **localhost** define the server's IP which you can connect to, and **4382** the port.

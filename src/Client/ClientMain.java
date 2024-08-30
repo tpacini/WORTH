@@ -75,11 +75,10 @@ public class ClientMain {
     }
 
     /**
-     * Esegue il parsing dell'input dell'utente e esegue dei controlli sulla validità della
-     * richiesta
-     * @param input input dell'utente
-     * @throws IOException errore di I/O
-     * @throws NotBoundException errore nella lookup del registry
+     * Parse user input
+     * @param input user input
+     * @throws IOException I/O error
+     * @throws NotBoundException registry lookup error
      */
     private static void parser(String input) throws IOException, NotBoundException {
         String[] splitted = input.split(" ");
@@ -89,10 +88,10 @@ public class ClientMain {
             case "login":
                 if (ONLINE == 0) {
                     if (splitted.length != 3) {
-                        System.out.println("Input non valido. (login user pass)");
+                        System.out.println("Invalid input. (login user pass)");
                     } else login(splitted[1], splitted[2]);
                 } else
-                    System.out.println("Sei già loggato, impossibile fare la login");
+                    System.out.println("You are already logged in.");
                 break;
             case "register":
                 if (ONLINE == 0) {
@@ -100,14 +99,13 @@ public class ClientMain {
                         System.out.println("Invalid input. (register user pass)");
                     } else register(splitted[1], splitted[2]);
                 } else
-                    System.out.println("Sei loggato, esegui il logout per poter " +
-                            "registrare un altro account.");
+                    System.out.println("You are logged in, log out before registering a new user.");
                 break;
             case "logout":
                 if (ONLINE == 1) {
                     logout(0);
                 } else
-                    System.out.println("Impossibile fare il logout, non sei online");
+                    System.out.println("Cannot log out, you are already offline.");
                 break;
             case "list_users":
                 if (ONLINE == 1) stub.getLocalUserList(0);
@@ -124,40 +122,40 @@ public class ClientMain {
             case "create_project":
                 if (ONLINE == 1) {
                     if (splitted.length != 2)
-                        System.out.println("Invalid input. (create_project nome_progetto)");
+                        System.out.println("Invalid input. (create_project project_name)");
                     else createProject(splitted[1]);
                 } else System.out.println(NOT_LOGGED);
                 break;
             case "add_member":
                 if (ONLINE == 1) {
                     if (splitted.length != 3)
-                        System.out.println("Invalid input. (add_member nome_prog nickname)");
+                        System.out.println("Invalid input. (add_member project_name username)");
                     else addMember(splitted[1], splitted[2]);
                 } else System.out.println(NOT_LOGGED);
                 break;
             case "show_members":
                 if (ONLINE == 1) {
-                    if (splitted.length != 2) System.out.println("Invalid input. (show_members nome_prog)");
+                    if (splitted.length != 2) System.out.println("Invalid input. (show_members project_name)");
                     else showMembers(splitted[1]);
                 } else System.out.println(NOT_LOGGED);
                 break;
             case "show_cards":
                 if (ONLINE == 1) {
-                    if (splitted.length != 2) System.out.println("Invalid input. (show_cards nome_prog)");
+                    if (splitted.length != 2) System.out.println("Invalid input. (show_cards project_name)");
                     else showCards(splitted[1]);
                 } else System.out.println(NOT_LOGGED);
                 break;
             case "show_card":
                 if (ONLINE == 1) {
                     if (splitted.length != 3)
-                        System.out.println("Invalid input. (show_card nome_prog nome_card)");
+                        System.out.println("Invalid input. (show_card project_name card_name)");
                     else showCard(splitted[1], splitted[2]);
                 } else System.out.println(NOT_LOGGED);
                 break;
             case "add_card":
                 if (ONLINE == 1) {
                     if (splitted.length < 4)
-                        System.out.println("Invalid input. (add_card nome_prog nome_card descr)");
+                        System.out.println("Invalid input. (add_card project_name card_name description)");
                     else {
                         splitted = input.split(" ", 4);
                         addCard(splitted[1], splitted[2], splitted[3]);
@@ -167,21 +165,21 @@ public class ClientMain {
             case "move_card":
                 if (ONLINE == 1) {
                     if (splitted.length != 5)
-                        System.out.println("Invalid input. (move_card nome_prog nome_card source_list dest_list)");
+                        System.out.println("Invalid input. (move_card project_name card_name source_list dest_list)");
                     else moveCard(splitted[1], splitted[2], splitted[3], splitted[4]);
                 } else System.out.println(NOT_LOGGED);
                 break;
             case "read_chat":
                 if (ONLINE == 1) {
                     if (splitted.length != 2)
-                        System.out.println("Invalid input. (read_chat nome_prog)");
+                        System.out.println("Invalid input. (read_chat project_name)");
                     else readChat(splitted[1]);
                 } else System.out.println(NOT_LOGGED);
                 break;
             case "send_chat_msg":
                 if (ONLINE == 1) {
                     if (splitted.length < 3)
-                        System.out.println("Invalid input. (send_chat nome_prog msg)");
+                        System.out.println("Invalid input. (send_chat project_name message)");
                     else {
                         splitted = input.split(" ", 3);
                         sendChatMsg(splitted[1], splitted[2]);
@@ -191,7 +189,7 @@ public class ClientMain {
             case "get_card_history":
                 if (ONLINE == 1) {
                     if (splitted.length != 3)
-                        System.out.println("Invalid input. (get_card_history nome_prog nome_card)");
+                        System.out.println("Invalid input. (get_card_history project_name card_name)");
                     else {
                         getCardHistory(splitted[1], splitted[2]);
                     }
@@ -200,7 +198,7 @@ public class ClientMain {
             case "cancel_project":
                 if (ONLINE == 1) {
                     if (splitted.length != 2)
-                        System.out.println("Invalid input. (cancel_project nome_prog)");
+                        System.out.println("Invalid input. (cancel_project project_name)");
                     else {
                         cancelProject(splitted[1]);
                     }
@@ -213,47 +211,40 @@ public class ClientMain {
                 flag = false;
                 break;
             default:
-                System.out.println("Comando non esistente, digita \"help\" per maggiori informazioni.");
+                System.out.println("Command does not exists, type \"help\" for the list of available commands.");
                 break;
         }
     }
 
     /**
-     * Metodo ausiliario che gestisce l'invio di una richiesta al server, e la
-     * ricezione della relativa risposta
-     * @param msg  messaggio di richiesta da inviare al server
-     * @param size dimensione del ByteBuffer di ricezione
-     * @return ByteBuffer contenente la risposta del server
+     * Send request to the server and obtain its response
+     * @param msg  request message
+     * @param size size of RX ByteBuffer
+     * @return ByteBuffer storing server's response
      */
     private static ByteBuffer sendRequest(String msg, int size) {
         ByteBuffer request = ByteBuffer.wrap(msg.getBytes());
         ByteBuffer resp = ByteBuffer.allocate(size);
 
-        /* Controlla se tutti i bytes siano stati scritti */
         while (request.hasRemaining()) {
             try {
                 client.write(request);
             }
-            /* La write ha riscontrato un errore*/
             catch (IOException e) {
                 break;
             }
         }
 
-        /* Controlla i bytes letti */
         try {
             int read = client.read(resp);
 
-            /* Errore in lettura, esce dal programma perché nel caso di canale non bloccante,
-             * -1 viene restituito solo in caso di errore (mentre 0 viene restituito nel caso
-             * in cui si sia letto il buffer per intero */
             if (read == -1) {
-                System.out.println("Errore lettura. Connessione con il server interrotta.");
+                System.out.println("Read error. Server connection interrupted.");
                 flag = false;
                 return null;
             }
         } catch (IOException e) {
-            System.out.println("Server chiuso.");
+            System.out.println("Server connection closed.");
             flag = false;
         }
 
@@ -261,52 +252,44 @@ public class ClientMain {
     }
 
     /**
-     * Gestisce gli inviti di partecipazione ad un certo progetto, o le uscite nel
-     * caso in cui il progetto sia stato cancellato. Se sei appena loggato ti ricollega
-     * alla chat e aggiorna projects
-     * @throws IOException sendRequest o checkFirstTime hanno riscontrato errori di I/O
+     * Check for request to join projects or notifications about closed projects. If the
+     * user looged in, it is connected to the projects' chats
+     * @throws IOException I/O error on sendRequest or checkFirstTime
      */
     private static void checkNotifications() throws IOException {
         ByteBuffer resp = sendRequest("list_projects", BASE_SIZE);
         if (resp == null) return;
 
-        String[] response = new String(resp.array()).trim().split("\n");
-        /* Elimina response[0] perché si tratta della risposta del server */
+        String[] response = new String(resp.array()).trim().split("\n"); // response[0] contains server response
         ArrayList<String> aux = new ArrayList<>(Arrays.asList(response).subList(1, response.length));
-
-        /* Se ci sono elementi in più in "projects" rispetto ad "aux", allora dei
-         * progetti sono stati chiusi */
         for (String key : projects.keySet()) {
             if (!aux.contains(key)) {
                 projects.remove(key);
-                System.out.println("*Il progetto " + key + " è stato chiuso*");
+                System.out.println("The project " + key + " has been closed.");
             }
         }
 
         for (String check : aux) {
-            /* C'è un elemento in più in "aux" e significa che l'utente è stato aggiunto ad un progetto*/
+            /* User has been added to a new project, get multicast parameter */
             if (!projects.containsKey(check)) {
-                /* Richiede al server i parametri per il multicast */
                 resp = sendRequest("get_parameter " + check, BASE_SIZE);
                 if (resp == null) return;
 
                 String[] parameter = new String(resp.array()).split("\n");
-                /* Aggiunge l'utente al "gruppo" e salva le informazioni per
-                 * il multicast */
                 if (parameter[0].equals("200 OK"))
                     checkFirstTime(check, parameter[1]);
                 else
-                    System.out.println("Impossibile ottenere i parametri. Non aggiunto al progetto " + check);
+                    System.out.println("Cannot obtain multicast parameters. The user has not " +
+                        "been added to the project  " + check);
             }
         }
     }
 
     /**
-     * Aggiunge le informazioni sul nuovo progetto all'interno dell'HashMap projects e
-     * crea la socket di multicast per interagire con gli altri membri del progetto
-     * @param projName il nome del progetto a cui l'utente è stato aggiunto
-     * @param addrPort address:port relativi alla chat multicast del progetto
-     * @throws IOException errori di I/O durante le operazioni sulla MulticastSocket
+     * Store project information in "projects" and create multicast socket
+     * @param projName project name
+     * @param addrPort address:port of the multicast socket
+     * @throws IOException I/O error on MulticastSocket
      */
     private static void checkFirstTime(String projName, String addrPort) throws IOException {
         if (!projects.containsKey(projName)) {
@@ -320,22 +303,21 @@ public class ClientMain {
 
             MulticastInfos ms = new MulticastInfos(localMS, addr, port);
             projects.put(projName, ms);
-            System.out.println("*Sei stato aggiunto al progetto " + projName + "*");
+            System.out.println("You have been added to project " + projName + ".");
         }
     }
 
     /**
-     * Metodo ausiliario che gestisce la registrazione al meccanismo di callback e
-     * la creazione del ROC (interfaccia remota del server)
-     * @throws RemoteException errore nel remote method
-     * @throws NotBoundException al nome non è associato nessun registro
+     * Handle registration to callback and creation of ROC (client remote interface)
+     * @throws RemoteException remote method error
+     * @throws NotBoundException no registry linked to the name
      */
     private static void callbackImpl() throws RemoteException, NotBoundException {
-        /* Il client recupera la ROS (interfaccia remota del server) */
+        /* Retrieve ROS (server remote interface) */
         Registry registry = LocateRegistry.getRegistry(RMICallbackInterface.PORT);
         server = (RMICallbackInterface) registry.lookup(RMICallbackInterface.REMOTE_OBJECT_NAME);
 
-        /* Il client si registra alla callback */
+        /* Register client to callback */
         System.out.println("Registering for callback");
         callbackObj = new ClientNotifyImpl();
         stub = (ClientNotifyInterface) UnicastRemoteObject.exportObject(callbackObj, 0);
@@ -344,20 +326,20 @@ public class ClientMain {
     }
 
     /**
-     * Effettua la login dell'utente
-     * @param nickname username dell'utente
-     * @param pass password dell'utente
+     * Login the user through RMI
+     * @param nickname username
+     * @param pass password
      */
     private static void login(String nickname, String pass) {
         try {
-            /* Apre il "canale" con il server */
+            /* Open channel to the server */
             client = SocketChannel.open(new InetSocketAddress(hostS, portS));
         } catch (IOException e) {
-            System.out.println("SocketChannel error. Controllare che il server sia online");
+            System.out.println("SocketChannel error. Check if the server is online");
             flag = false;
             return;
         } catch (UnresolvedAddressException e) {
-            System.out.println("Errore con l'indirizzo del server, controllare correttezza");
+            System.out.println("Server address error, check if the address is correct.");
             flag = false;
             return;
         }
@@ -370,62 +352,61 @@ public class ClientMain {
 
         if (answer.equals("200 OK")) {
             ClientMain.username = nickname;
-            /* Si registra al sistema di notifica (RMI Callback) */
+            /* Register to RMI Callback */
             try {
                 callbackImpl();
             } catch (IOException | NotBoundException e) {
-                System.out.println("Impossibile registrarsi alle callback.");
+                System.out.println("Cannot register to callback.");
                 flag = false;
                 return;
             }
             ONLINE = 1;
 
-            /* Recupera le informazioni di multicast, e crea una socket, dei
-             * progetti a cui apparteneva */
+            /* Retrieve multicast data and create multicast socket */
             try {
                 checkNotifications();
             } catch (IOException e) {
-                System.out.println("Impossibile partecipare al gruppo di multicast.");
+                System.out.println("Cannot join multicast group.");
                 flag = false;
             }
         }
     }
 
     /**
-     * Effettua la registrazione dell'utente tramite RMI
-     * @param nickname username dell'utente
-     * @param pass password dell'utente
+     * Register the user through RMI
+     * @param nickname username
+     * @param pass password
      */
     private static void register(String nickname, String pass) {
         RMIRegistrationInterface serverObject;
         String response;
 
-        /* Ottiene l'interfaccia remota del server */
+        /* Retrieve server remote interface */
         try {
             Registry registry = LocateRegistry.getRegistry(RMIRegistrationInterface.PORT);
             serverObject = (RMIRegistrationInterface)
                     registry.lookup(RMIRegistrationInterface.REMOTE_OBJECT_NAME);
         } catch (NotBoundException e) {
-            System.out.println("Problemi a trovare il binding con lo specifico nome: " +
+            System.out.println("Cannot find binding to name: " +
                     RMIRegistrationInterface.REMOTE_OBJECT_NAME);
             return;
         }
         catch(IOException e) {
-            System.out.println("Impossibile registrarsi tramite RMI.");
+            System.out.println("Cannot register using RMI.");
             return;
         }
 
-        /* Utilizza il metodo dell'oggetto remoto per effettuare la registrazione */
+        /* User remote object to perform user registration */
         try {
             response = serverObject.register(nickname, pass);
             System.out.println(response);
         } catch (IOException e) {
-            System.out.println("Binding corretto, problemi durante la registrazione");
+            System.out.println("Binding is correct. Encountered errors during registration.");
         }
     }
 
     /**
-     * Mostra la lista dei progetti a cui l'utente partecipa
+     * List projects the user belongs to
      */
     private static void listProjects() {
         ByteBuffer resp = sendRequest("list_projects", BASE_SIZE);
@@ -436,9 +417,9 @@ public class ClientMain {
     }
 
     /**
-     * Crea un nuovo progetto
-     * @param projName nome del progetto creato
-     * @throws IOException sendRequest ha riscontrato errori di I/O
+     * Create a new project
+     * @param projName project name
+     * @throws IOException I/O error on sendRequest
      */
     private static void createProject(String projName) throws IOException {
         ByteBuffer resp = sendRequest("create_project " + projName, BASE_SIZE);
@@ -446,16 +427,16 @@ public class ClientMain {
 
         String[] respArray = new String(resp.array()).split("\n");
         System.out.println(respArray[0]);
-        /* Imposta la socket di multicast e salva l'indirizzo e la porta */
+        /* Set up multicast socket, store address and port */
         if (respArray[0].equals("200 OK"))
             checkFirstTime(projName, respArray[1]);
     }
 
     /**
-     * Aggiunge un nuovo membro al progetto
-     * @param projName nome del progetto di cui l'utente fa parte
-     * @param nickname nome dell'utente da aggiungere al progetto
-     * @throws IOException sendRequest ha riscontrato errori di I/O
+     * Add new member to project
+     * @param projName project name
+     * @param nickname username to add
+     * @throws IOException I/O error on sendRequest
      */
     private static void addMember(String projName, String nickname) throws IOException {
         ByteBuffer resp = sendRequest("add_member " + projName + " " + nickname, BASE_SIZE);
@@ -463,15 +444,15 @@ public class ClientMain {
 
         String response = new String(resp.array()).trim();
         System.out.println(response);
-
-        /* Invia un messaggio nella chat del progetto per notificare l'azione eseguita */
-        if (response.equals("200 OK")) sendSystemMsg(projName, username + " ha aggiunto l'utente " +
-                nickname + " al progetto");
+        
+        /* Send message on project chat */
+        if (response.equals("200 OK")) sendSystemMsg(projName, username + " added user " +
+                nickname + " to the project");
     }
 
     /**
-     * Mostra i membri del progetto
-     * @param projName nome del progetto
+     * Show project members
+     * @param projName project name
      */
     private static void showMembers(String projName) {
         ByteBuffer resp = sendRequest("show_members " + projName, BASE_SIZE);
@@ -486,8 +467,8 @@ public class ClientMain {
     }
 
     /**
-     * Mostra le card associate al progetto
-     * @param projName nome del progetto
+     * Show cards belonging to the project
+     * @param projName project name
      */
     private static void showCards(String projName) {
         ByteBuffer resp = sendRequest("show_cards " + projName, BASE_SIZE);
@@ -502,9 +483,9 @@ public class ClientMain {
     }
 
     /**
-     * Mostra una specifica card associata al progetto
-     * @param projName nome del progetto
-     * @param cardName nome della card
+     * Show a card belonging to the project
+     * @param projName project name
+     * @param cardName card name
      */
     private static void showCard(String projName, String cardName) {
         ByteBuffer resp = sendRequest("show_card " + projName + " " + cardName, MAX_SIZE);
@@ -519,9 +500,9 @@ public class ClientMain {
     }
 
     /**
-     * Ottiene la "storia" (le liste che ha visitato la card) della card
-     * @param projName nome del progetto
-     * @param cardName nome della card
+     * Retrieve the movements of the card
+     * @param projName project name
+     * @param cardName card name
      */
     private static void getCardHistory(String projName, String cardName) {
         ByteBuffer resp = sendRequest("get_card_history " + projName + " " + cardName, BASE_SIZE);
@@ -536,11 +517,11 @@ public class ClientMain {
     }
 
     /**
-     * Aggiunge una card al progetto
-     * @param projName nome del progetto
-     * @param cardName nome della card
-     * @param descr descrizione relativa alla card
-     * @throws IOException sendRequest ha riscontrato errori di I/O
+     * Add a card to the project
+     * @param projName project name
+     * @param cardName card name
+     * @param descr card description
+     * @throws IOException I/O error on sendRequest
      */
     private static void addCard(String projName, String cardName, String descr) throws IOException {
         ByteBuffer resp = sendRequest("add_card " + projName + " " + cardName + " " + descr, BASE_SIZE);
@@ -549,18 +530,17 @@ public class ClientMain {
         String response = new String(resp.array()).trim();
         System.out.println(response);
 
-        /* Invia un messaggio nella chat del progetto per notificare l'azione eseguita */
-        if (response.equals("200 OK")) sendSystemMsg(projName, username + " ha aggiunto la card " +
+        if (response.equals("200 OK")) sendSystemMsg(projName, username + " added card " +
                 cardName);
     }
 
     /**
-     * Sposta una card da una certa lista sorgente (to_do, inprogress, toberevised) ad una di destinazione
-     * @param projName nome del progetto
-     * @param cardName nome della card
-     * @param sourceList lista di partenza
-     * @param destList lista di arrivo
-     * @throws IOException sendRequest ha riscontrato errori di I/O
+     * Move card from a source list (to_do, inprogress, toberevised) to a destination list
+     * @param projName project name
+     * @param cardName card name
+     * @param sourceList source list
+     * @param destList destination list
+     * @throws IOException I/O error on sendRequest
      */
     private static void moveCard(String projName, String cardName, String sourceList, String destList)
             throws IOException {
@@ -571,79 +551,68 @@ public class ClientMain {
         String response = new String(resp.array()).trim();
         System.out.println(response);
 
-        /* Invia un messaggio nella chat del progetto per notificare l'azione eseguita */
-        if (response.equals("200 OK")) sendSystemMsg(projName, username + " ha spostato " +
-                cardName + " da " + sourceList + " a " + destList);
+        if (response.equals("200 OK")) sendSystemMsg(projName, username + " moved " +
+                cardName + " from " + sourceList + " to " + destList);
     }
 
     /**
-     * Legge i messaggi della chat del progetto
-     * @param projName nome del progetto
-     * @throws IOException sendRequest o receive hanno riscontrato errori di I/O
+     * Read messages on project chat
+     * @param projName project name
+     * @throws IOException I/O error on sendRequest or receive
      */
     private static void readChat(String projName) throws IOException {
-        /* Controlla se l'utente appartenga al progetto (in questo caso
-         * il controllo deve farlo lato client perché non invia nessun'altra
-         * richiesta al server */
+        /* Check if user belongs to project */
         ByteBuffer resp = sendRequest("is_member " + projName, BASE_SIZE);
         if (resp == null) return;
 
         String answer = new String(resp.array()).trim();
         int stopFlag = 0;
 
-        /* L'utente appartiene al progetto */
         if (answer.equals("200 OK")) {
-            /* Esegue la lettura dei messaggi della chat */
-            System.out.println("|Nuovi messaggi|");
+            System.out.println("|New messages|");
             while (stopFlag == 0) {
                 try {
                     byte[] buf = new byte[MAX_SIZE];
                     DatagramPacket dp = new DatagramPacket(buf, buf.length);
-                    /* Utilizza la socket salvata in projects (e associata
-                     * ad un nome) */
                     projects.get(projName).getMultiSocket().receive(dp);
                     String response = new String(dp.getData());
                     System.out.println(response);
                 }
-                /* Se il timeout è scaduto allora non ci sono più messaggi da
-                 * leggere */ catch (SocketTimeoutException e) {
+                catch (SocketTimeoutException e) {
                     stopFlag = 1;
-                    System.out.println("|Fine nuovi messaggi|");
+                    System.out.println("|------------|");
                 }
             }
         } else System.out.println(answer);
     }
 
     /**
-     * Invia un messaggio sulla chat del progetto
-     * @param projName nome del progetto
-     * @param sendMsg  messaggio da inviare
-     * @throws IOException sendRequest o send hanno riscontrato errori di I/O
+     * Write message to project chat
+     * @param projName project name
+     * @param sendMsg  message to write
+     * @throws IOException I/O error on sendRequest or send
      */
     private static void sendChatMsg(String projName, String sendMsg) throws IOException {
-        /* Controllo se l'utente appartenga al progetto */
         ByteBuffer resp = sendRequest("is_member " + projName, BASE_SIZE);
         if (resp == null) return;
 
         String answer = new String(resp.array()).trim();
         String msg;
 
-        /* L'utente appartiene al progetto */
         if (answer.equals("200 OK")) {
-            /* Invio un messaggio sulla chat */
             msg = ClientMain.username + ": " + sendMsg;
             byte[] buf = msg.getBytes();
             MulticastInfos aux = projects.get(projName);
             DatagramPacket dp = new DatagramPacket(buf, buf.length, InetAddress.getByName(aux.getAddr()),
                     aux.getPort());
             ds.send(dp);
-            System.out.println("Messaggio inviato");
+            System.out.println("Message sent");
         } else System.out.println(answer);
     }
 
     /**
-     * Cancella il progetto (solo se tutti i "task" sono conclusi)
-     * @param projName nome del progetto
+     * Remove the project (all the tasks should be completed)
+     * @param projName project name
      */
     private static void cancelProject(String projName) {
         ByteBuffer resp = sendRequest("cancel_project " + projName, BASE_SIZE);
@@ -651,22 +620,18 @@ public class ClientMain {
 
         String response = new String(resp.array()).trim();
         System.out.println(response);
-        /* Non devo eliminare nessun riferimento locale poiché lo farà
-         * checkNotifications */
     }
 
     /**
-     * Esegue il logout
-     * @param exit 1 se l'utente vuole disconnettersi e uscire dal programma
-     *             0 se l'utente vuole solo disconnettersi
-     * @throws IOException sendRequest o unregisterForCallback ha riscontrato errori di I/O
+     * Logout the user
+     * 
+     * @param exit 1 logout user and shutdown the client
+     *             0 logout user
+     * @throws IOException I/O error on sendRequest or unregisterForCallback
      */
     private static void logout(int exit) throws IOException {
-        /* Se vuole fare la logout senza exit oppure se vuole fare
-         * la logout e la exit  */
         if(exit == 0 || (exit == 1 && ONLINE == 1)) {
             try {
-                /* Elimina la registrazione alle callback */
                 if (stub != null) {
                     server.unregisterForCallback(stub);
                     stub = null;
@@ -675,31 +640,25 @@ public class ClientMain {
                 UnicastRemoteObject.unexportObject(callbackObj, true);
                 ONLINE = 0;
                 projects.clear();
-                System.out.println("Logout effettuato con successo.");
+                System.out.println("Logout was successful.");
             }
-            /* Nel caso in cui il server si sia disconnesso per un errore o per qualche anomalia,
-             * allora la unregisterForCallback lancerà un'eccezione non riuscendo a contattare il server,
-             * e in questo caso notifica l'utente e la fa uscire */
+            /* Server connection is closed */
             catch (IOException e) {
                 if (ONLINE == 1) {
                     ONLINE = 0;
                     UnicastRemoteObject.unexportObject(callbackObj, true);
                     stub = null;
-                    System.out.println("Logout effettuato con successo, anche se il server è chiuso.");
+                    System.out.println("Logout was successful even if the server is closed.");
                     return;
                 }
             }
 
-            /* Se vuole fare solo la logout, invia il messaggio "logout" al server,
-             * altrimenti invia "exit" */
             try {
                 if (exit == 0) {
-                    /* Notifica il server del logout */
                     ByteBuffer request = ByteBuffer.wrap("logout".getBytes());
                     client.write(request);
                     client.close();
                 } else  {
-                    /* Avvisa il server della exit */
                     ByteBuffer request = ByteBuffer.wrap("exit".getBytes());
                     client.write(request);
                     client.close();
@@ -707,23 +666,21 @@ public class ClientMain {
                     ds.close();
                 }
             } catch (IOException e) {
-                System.out.println("Impossibile contattare il server. Server chiuso");
+                System.out.println("Cannot communicate with the server.");
             }
         }
-        /* Se vuole uscire ma ha già effettuato la logout */
+        /* If client should be closed and logout has already been performed */
         else if(exit == 1) ds.close();
 
     }
 
     /**
-     * Invia un messaggio di sistema sulla chat, che notifica qualche evento svolto
-     * dall'utente (aggiunta di una card, aggiunta di un utente ecc..)
-     * @param projName nome del progetto
-     * @param sendMsg messaggio di sistema
-     * @throws IOException errore di I/O
+     * Send a system message to project chat, denoting a particular event (e.g. new card or new user)
+     * @param projName project name
+     * @param sendMsg message
+     * @throws IOException I/O error
      */
     private static void sendSystemMsg(String projName, String sendMsg) throws IOException {
-        /* Invia un messaggio sulla chat */
         String msg = "System: " + sendMsg;
         byte[] buf = msg.getBytes();
         MulticastInfos aux = projects.get(projName);
@@ -732,50 +689,49 @@ public class ClientMain {
         ds.send(dp);
     }
 
-    /* Stampa a schermo la lista dei comandi disponibili */
     private static void help() {
         System.out.println(" ");
 
         if(ONLINE == 0) {
-            System.out.printf("%-20s %-40s\n\n", "login user pass", "esegui la login");
+            System.out.printf("%-20s %-40s\n\n", "login user pass", "perform user login");
 
-            System.out.printf("%-20s %-40s\n\n", "register user pass", "esegui la registrazione");
+            System.out.printf("%-20s %-40s\n\n", "register user pass", "perform user registration");
 
-            System.out.printf("%-20s %-40s\n\n", "exit", "uscire dal programma");
+            System.out.printf("%-20s %-40s\n\n", "exit", "close the client");
         }
         else {
 
-            System.out.printf("%-55s %-100s\n\n", "logout", "esegui la logout");
+            System.out.printf("%-55s %-100s\n\n", "logout", "perform user logout");
 
-            System.out.printf("%-55s %-100s\n\n", "list_users", "visualizza la lista degli utenti registrati");
+            System.out.printf("%-55s %-100s\n\n", "list_users", "list registered users");
 
-            System.out.printf("%-55s %-100s\n\n", "list_online_users", "visualizza la lista degli utenti online");
+            System.out.printf("%-55s %-100s\n\n", "list_online_users", "list online users");
 
-            System.out.printf("%-55s %-100s\n\n", "list_projects", "visualizza i progetti di cui sei membro");
+            System.out.printf("%-55s %-100s\n\n", "list_projects", "list projects the user belongs to");
 
-            System.out.printf("%-55s %-100s\n\n", "create_project nome_prog", "crea un progetto con nome \"nome_prog\"");
+            System.out.printf("%-55s %-100s\n\n", "create_project project_name", "create a project \"project_name\"");
 
-            System.out.printf("%-55s %-100s\n\n", "add_member nome_prog nickname", "aggiungi il membro \"nickname\" al progetto \"nome_prog\"");
+            System.out.printf("%-55s %-100s\n\n", "add_member project_name nickname", "add user \"nickname\" to project \"project_name\"");
 
-            System.out.printf("%-55s %-100s\n\n", "show_members nome_prog", "visualizza i membri del progetto \"nome_prog\"");
+            System.out.printf("%-55s %-100s\n\n", "show_members project_name", "show members of project \"project_name\"");
 
-            System.out.printf("%-55s %-100s\n\n", "show_cards nome_prog", "visualizza le carte associate al progetto \"nome_prog\"");
+            System.out.printf("%-55s %-100s\n\n", "show_cards project_name", "show cards of project \"project_name\"");
 
-            System.out.printf("%-55s %-100s\n\n", "show_card nome_prog nome_card", "visualizza le informazioni della card \"nome_card\" associata al progetto \"nome_prog\"");
+            System.out.printf("%-55s %-100s\n\n", "show_card project_name card_name", "show information about card \"card_name\" of project \"project_name\"");
 
-            System.out.printf("%-55s %-100s\n\n", "add_card nome_prog nome_card descr", "aggiungi la card con descrizione \"descr\" al progetto");
+            System.out.printf("%-55s %-100s\n\n", "add_card project_name card_name descr", "add card with description \"descr\" to project");
 
-            System.out.printf("%-55s %-100s\n\n", "move_card nome_prog nome_card source_list dest_list", "sposta la card dalla lista \"source_list\" alla lista \"dest_list\"");
+            System.out.printf("%-55s %-100s\n\n", "move_card project_name card_name source_list dest_list", "move card from \"source_list\" to \"dest_list\"");
 
-            System.out.printf("%-55s %-100s\n\n", "read_chat nome_prog", "visualizza i messaggi della chat del progetto");
+            System.out.printf("%-55s %-100s\n\n", "read_chat project_name", "show message of project chat");
 
-            System.out.printf("%-55s %-100s\n\n", "send_chat_msg nome_prog msg", "invia un messaggio nella chat del progetto");
+            System.out.printf("%-55s %-100s\n\n", "send_chat_msg project_name msg", "write a message to project chat");
 
-            System.out.printf("%-55s %-100s\n\n", "get_card_history nome_prog nome_card", "ottieni la \"storia\" della card");
+            System.out.printf("%-55s %-100s\n\n", "get_card_history project_name card_name", "obtain movements of the card");
 
-            System.out.printf("%-55s %-100s\n\n", "cancel_project nome_prog", "cancella il progetto");
+            System.out.printf("%-55s %-100s\n\n", "cancel_project project_name", "remove project");
 
-            System.out.printf("%-55s %-100s\n\n", "exit", "uscire dal programma");
+            System.out.printf("%-55s %-100s\n\n", "exit", "close the client");
         }
 
     }
